@@ -1,0 +1,130 @@
+'use strict';
+
+// Change before deploying; mirrors extension/shared/config.js (SW can't import it).
+const BACKEND_URL = 'http://localhost:8000';
+
+// Flush when buffer reaches this many segments OR when FLUSH_INTERVAL_MS has
+// elapsed since the last flush — whichever comes first.
+const FLUSH_SEGMENT_COUNT = 25;
+const FLUSH_INTERVAL_MS   = 20_000; // 20 s
+
+// ============================================================================
+// In-memory state
+// captureState is also mirrored to chrome.storage.session so the popup can
+// read it. Buffer and seq live only in memory: receiving SEGMENT messages from
+// the content script keeps the SW alive during active capture.
+// ============================================================================
+let captureState = { isCapturing: false, sessionId: null };
+let buffer       = [];   // {seq, speaker, text, timestamp}[]
+let seq          = 0;    // monotonic counter; reset on each session start
+let lastFlushAt  = 0;    // Date.now() of last successful flush
+
+// ============================================================================
+// Thin fetch wrapper — throws on non-2xx
+// ============================================================================
+async function apiPost(path, body) {
+  const res = await fetch(`${BACKEND_URL}${path}`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`POST ${path} → HTTP ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
+// ============================================================================
+// Flush — POST the current buffer as a batch.
+// On success:  remove sent segments from the buffer.
+// On failure:  leave them in the buffer; seq+session_id dedup on retry.
+// ============================================================================
+async function flush() {
+  if (!captureState.isCapturing || !captureState.sessionId || buffer.length === 0) return;
+
+  const batch = [...buffer];
+  try {
+    const result = await apiPost(`/session/${captureState.sessionId}/segments`, {
+      segments: batch,
+    });
+    // Only remove the segments we actually sent (not anything that arrived mid-flush).
+    buffer    = buffer.filter(s => !batch.includes(s));
+    lastFlushAt = Date.now();
+    console.log(`[MeetPilot SW] flushed — accepted=${result.accepted} skipped=${result.skipped}`);
+  } catch (err) {
+    console.warn('[MeetPilot SW] flush failed; will retry on next flush:', err.message);
+    // Segments stay in buffer — backend deduplicates via (session_id, seq).
+  }
+}
+
+// ============================================================================
+// Message router
+// ============================================================================
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  handleMessage(msg)
+    .then(sendResponse)
+    .catch(err => {
+      console.error('[MeetPilot SW] unhandled error in', msg.type, err);
+      sendResponse({ ok: false, error: err.message });
+    });
+  return true; // keep channel open for async sendResponse
+});
+
+async function handleMessage(msg) {
+  // ------------------------------------------------------------------
+  // START_CAPTURE — call /session/start, initialise state
+  // ------------------------------------------------------------------
+  if (msg.type === 'START_CAPTURE') {
+    const data = await apiPost('/session/start', {});
+    captureState = { isCapturing: true, sessionId: data.session_id };
+    buffer      = [];
+    seq         = 0;
+    lastFlushAt = Date.now();
+    await chrome.storage.session.set({ captureState });
+    console.log(`[MeetPilot SW] session started: ${data.session_id}`);
+    return { ok: true, sessionId: data.session_id };
+  }
+
+  // ------------------------------------------------------------------
+  // STOP_CAPTURE — final flush, then /complete
+  // ------------------------------------------------------------------
+  if (msg.type === 'STOP_CAPTURE') {
+    if (!captureState.isCapturing) return { ok: true };
+    const sessionId = captureState.sessionId;
+
+    await flush(); // send any buffered segments before completing
+
+    await apiPost(`/session/${sessionId}/complete`, {});
+    console.log(`[MeetPilot SW] session complete: ${sessionId}`);
+
+    captureState = { isCapturing: false, sessionId: null };
+    buffer       = [];
+    await chrome.storage.session.set({ captureState });
+    return { ok: true };
+  }
+
+  // ------------------------------------------------------------------
+  // SEGMENT — stamp seq/timestamp, buffer, flush if due
+  // ------------------------------------------------------------------
+  if (msg.type === 'SEGMENT') {
+    if (!captureState.isCapturing) return { ok: true }; // not capturing — drop
+
+    seq += 1;
+    buffer.push({
+      seq,
+      speaker:   msg.speaker,
+      text:      msg.text,
+      timestamp: new Date().toISOString(),
+    });
+
+    const elapsed = Date.now() - lastFlushAt;
+    if (elapsed >= FLUSH_INTERVAL_MS || buffer.length >= FLUSH_SEGMENT_COUNT) {
+      await flush();
+    }
+
+    return { ok: true };
+  }
+
+  return { ok: false, error: `unknown message type: ${msg.type}` };
+}
