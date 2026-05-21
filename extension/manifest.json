@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "MeetPilot",
+  "version": "0.1.0",
+  "description": "Captures Google Meet captions and extracts action items.",
+
+  "permissions": ["storage", "tabs", "activeTab"],
+  "host_permissions": [
+    "https://meet.google.com/*",
+    "http://localhost/*"
+  ],
+
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["content/caption-observer.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "MeetPilot"
+  }
+}
