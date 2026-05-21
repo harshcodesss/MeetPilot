@@ -1,0 +1,31 @@
+# environment
+.env
+
+# database (dev SQLite — never commit)
+*.db
+*.db-shm
+*.db-wal
+
+# python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# node / frontend
+node_modules/
+.next/
+.env.local
+
+# OS
+.DS_Store
+
+# project-internal — not pushed to the public repo
+.claude/
+docs/
+CLAUDE.md
