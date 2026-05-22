@@ -1,0 +1,200 @@
+/* ============================================================================
+   MeetPilot popup — dark charcoal surface, muted light-blue accent.
+   Visual layer only. All IDs/classes referenced by popup.js are preserved:
+     #dot / .status-dot (+ .active)
+     #statusText / .status-text (+ .capturing)
+     #sessionId / .session-id
+     #promptBanner / .prompt-banner   (toggled via style.display by JS)
+     #btn / .btn (+ .btn-start / .btn-stop)
+   ============================================================================ */
+
+:root {
+  /* Surfaces */
+  --bg:              #1a1d23;          /* charcoal */
+  --surface:         #21252d;
+  --border:          #2c313b;
+
+  /* Text */
+  --text-primary:    #e7eaf0;
+  --text-secondary:  #a0a7b4;
+  --text-tertiary:   #6b7280;
+
+  /* Accent — muted, dusty light blue (not neon) */
+  --accent:          #8ebbdc;
+  --accent-hover:    #a3c8e3;
+  --accent-soft:     rgba(142, 187, 220, 0.10);
+  --accent-border:   rgba(142, 187, 220, 0.28);
+  --on-accent:       #15181d;          /* dark text on light-blue button */
+
+  /* Capturing indicator — same family as accent, no neon green */
+  --live:            #8ebbdc;
+  --live-glow:       rgba(142, 187, 220, 0.30);
+
+  /* Stop — muted clay red, not bright */
+  --danger:          #c87a78;
+  --danger-hover:    #d48d8b;
+
+  /* Idle dot */
+  --dot-idle:        #3a4150;
+
+  --radius:          10px;
+  --radius-sm:       8px;
+  --shadow-accent:   0 1px 2px rgba(0, 0, 0, 0.45), 0 6px 18px rgba(142, 187, 220, 0.10);
+  --shadow-danger:   0 1px 2px rgba(0, 0, 0, 0.45), 0 6px 18px rgba(200, 122, 120, 0.10);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--bg); }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+               system-ui, Roboto, sans-serif;
+  font-size: 14px;
+  width: 320px;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  animation: popupIn 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popupIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Header ---------- */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #4d6e8a 0%, #7099b8 100%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #e7eaf0;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.header-title {
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+/* Dot floats to the right of the header row */
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--dot-idle);
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: background-color 240ms ease;
+  box-shadow: 0 0 0 0 transparent;
+}
+
+.status-dot.active {
+  background: var(--live);
+  animation: livePulse 1.7s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { box-shadow: 0 0 0 0   var(--live-glow); }
+  50%      { box-shadow: 0 0 0 7px transparent;      }
+}
+
+/* ---------- Body ---------- */
+
+.body {
+  padding: 18px 20px 20px;
+}
+
+.status-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  min-height: 18px;
+  letter-spacing: -0.005em;
+  transition: color 240ms ease;
+}
+.status-text.capturing {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.session-id {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  margin-bottom: 16px;
+  word-break: break-all;
+  letter-spacing: 0.01em;
+}
+/* Collapse spacing when no session is active */
+.session-id:empty { margin: 0; }
+
+/* Banner — JS toggles display:block / display:none.
+   The keyframe re-runs each time it becomes visible. */
+.prompt-banner {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--accent);
+  margin-bottom: 14px;
+  display: none;
+  animation: bannerIn 340ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes bannerIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* ---------- Button ---------- */
+
+.btn {
+  width: 100%;
+  padding: 11px 0;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--on-accent);
+  cursor: pointer;
+  background: var(--accent);
+  transition: background-color 220ms ease,
+              box-shadow      220ms ease,
+              transform       120ms ease,
+              opacity         150ms ease;
+}
+.btn:active   { transform: translateY(1px); }
+.btn:disabled { opacity: 0.55; cursor: default; box-shadow: none; transform: none; }
+
+.btn-start         { background: var(--accent);       box-shadow: var(--shadow-accent); color: var(--on-accent); }
+.btn-start:hover   { background: var(--accent-hover); }
+
+.btn-stop          { background: var(--danger);       box-shadow: var(--shadow-danger); color: var(--on-accent); }
+.btn-stop:hover    { background: var(--danger-hover); }
+
+/* Respect users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  body, .prompt-banner, .status-dot.active { animation: none; }
+  .btn, .status-text, .status-dot          { transition: none; }
+}

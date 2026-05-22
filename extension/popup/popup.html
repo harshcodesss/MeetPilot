@@ -3,86 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <title>MeetPilot</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      font-size: 14px;
-      width: 280px;
-      background: #fff;
-      color: #1a1a1a;
-    }
-
-    .header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 14px 16px 10px;
-      border-bottom: 1px solid #f0f0f0;
-    }
-    .header-title { font-weight: 600; font-size: 15px; }
-
-    .status-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: #ccc;
-      flex-shrink: 0;
-      transition: background 0.2s;
-    }
-    .status-dot.active { background: #22c55e; box-shadow: 0 0 0 2px #dcfce7; }
-
-    .body { padding: 14px 16px; }
-
-    .status-text {
-      font-size: 13px;
-      color: #6b7280;
-      margin-bottom: 12px;
-      min-height: 18px;
-    }
-    .status-text.capturing { color: #16a34a; font-weight: 500; }
-
-    .session-id {
-      font-size: 11px;
-      color: #9ca3af;
-      font-family: monospace;
-      margin-bottom: 12px;
-      word-break: break-all;
-    }
-
-    .prompt-banner {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      border-radius: 6px;
-      padding: 10px 12px;
-      font-size: 13px;
-      color: #1d4ed8;
-      margin-bottom: 12px;
-      display: none;
-    }
-
-    .btn {
-      width: 100%;
-      padding: 9px 0;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: opacity 0.15s;
-    }
-    .btn:hover { opacity: 0.88; }
-    .btn:disabled { opacity: 0.45; cursor: default; }
-
-    .btn-start { background: #2563eb; color: #fff; }
-    .btn-stop  { background: #dc2626; color: #fff; }
-  </style>
+  <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
   <div class="header">
-    <div class="status-dot" id="dot"></div>
+    <div class="brand-mark">M</div>
     <span class="header-title">MeetPilot</span>
+    <div class="status-dot" id="dot"></div>
   </div>
 
   <div class="body">
