@@ -168,47 +168,83 @@ function flushPendingNow() {
 }
 
 // ============================================================================
-// Attach MutationObserver to the captions container
+// Captions-container lifecycle
+//
+// Meet removes the captions container entirely when the user toggles CC off,
+// and creates a fresh element with the same selector when they toggle CC
+// back on. A one-shot waitForContainer wouldn't see the second container.
+// We keep an outer body observer running for the whole page lifetime and
+// re-attach whenever the container appears, disappears, or is replaced.
 // ============================================================================
+let currentContainer  = null;
+let containerObserver = null;
+
 function attachToContainer(container) {
+  if (currentContainer === container && containerObserver) return; // already attached
+
+  if (containerObserver) containerObserver.disconnect();
+  currentContainer = container;
+
   console.log('[MeetPilot] captions container found — attaching MutationObserver');
   console.log('[MeetPilot] container el:', container);
 
-  const observer = new MutationObserver(() => {
+  containerObserver = new MutationObserver(() => {
     const items = container.querySelectorAll(SELECTORS.captionItem);
     console.log(`[MeetPilot] mutation fired | items=${items.length}`);
     onCaptionsChanged(container);
   });
 
-  observer.observe(container, {
+  containerObserver.observe(container, {
     childList: true,      // new caption items appearing
     subtree: true,        // text nodes growing inside items
     characterData: true,  // direct text-node changes
   });
 }
 
-// ============================================================================
-// Wait for the captions container to appear
-// (It only exists after the user enables live captions in Meet)
-// ============================================================================
-function waitForContainer() {
-  const existing = document.querySelector(SELECTORS.captionsContainer);
-  if (existing) {
-    attachToContainer(existing);
-    return;
-  }
+function detachContainer() {
+  if (containerObserver) containerObserver.disconnect();
+  containerObserver = null;
+  currentContainer  = null;
+}
 
-  // Poll the DOM until Meet renders the captions panel.
-  const bodyObserver = new MutationObserver(() => {
+// Run for the lifetime of the page: watch document.body for the captions
+// container appearing, disappearing, or being replaced (CC toggle on/off).
+//
+// Two signals run in parallel:
+//   (1) Body MutationObserver — fast path, fires on most DOM changes.
+//   (2) 500ms poll           — backup, catches cases the observer misses
+//                              (e.g. Meet flips role/aria-label attributes,
+//                              renders captions via a portal, or otherwise
+//                              changes state in a way that doesn't bubble
+//                              cleanly through childList mutations).
+function watchForContainer() {
+  const initial = document.querySelector(SELECTORS.captionsContainer);
+  if (initial) attachToContainer(initial);
+  else         console.log('[MeetPilot] waiting for captions container…');
+
+  const reconcileContainer = () => {
     const el = document.querySelector(SELECTORS.captionsContainer);
-    if (el) {
-      bodyObserver.disconnect();
-      attachToContainer(el);
-    }
-  });
 
+    if (el && el !== currentContainer) {
+      // (Re)appeared — initial render, or after a CC-off/CC-on cycle that
+      // replaced the element (or restored attributes our selector requires).
+      console.log('[MeetPilot] captions container (re)appeared — re-attaching');
+      attachToContainer(el);
+    } else if (!el && currentContainer) {
+      // Disappeared — element removed or attributes stripped. Flush any
+      // in-flight caption now while latestPending still has the text.
+      console.log('[MeetPilot] captions container disappeared — flushing in-flight caption');
+      flushPendingNow();
+      detachContainer();
+    }
+  };
+
+  const bodyObserver = new MutationObserver(reconcileContainer);
   bodyObserver.observe(document.body, { childList: true, subtree: true });
-  console.log('[MeetPilot] waiting for captions container…');
+
+  // Backup: 500ms poll. Cheap (one querySelector per tick), runs for the
+  // lifetime of the page. Adds at most ~500ms latency to detect a toggle.
+  setInterval(reconcileContainer, 500);
 }
 
 // ============================================================================
@@ -216,7 +252,7 @@ function waitForContainer() {
 //
 //   SESSION_RESET — sent on START_CAPTURE. Clears per-session emission state
 //                   so a node Meet re-uses across sessions isn't muted by the
-//                   prior run.
+//                   WeakSet from the previous run.
 //   FLUSH_PENDING — sent on STOP_CAPTURE. Emits any cached in-flight caption
 //                   immediately so the SW can include it in the final flush
 //                   before /complete.
@@ -255,4 +291,4 @@ async function handleFlushPending() {
   }
 }
 
-waitForContainer();
+watchForContainer();
