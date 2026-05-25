@@ -35,12 +35,25 @@ const DEBOUNCE_MS = 1800;
 // The content script is intentionally stateless with respect to capture.
 // It always forwards finalized segments to the service worker; the SW decides
 // whether to buffer or drop them based on its own capture state.
-// This avoids any chrome.storage access in the content script context.
+//
+// Dedup model: Meet often re-uses the same div.nMcdL element for multiple
+// utterances on the same line (and refines a single utterance word-by-word).
+// Tracking "emitted nodes" as a WeakSet would silently swallow everything
+// after the first emit from such a node. Instead we track the FULL text we
+// last successfully emitted per node; subsequent mutations are compared
+// against it and only the new content (tail) is sent.
+//
+// `lastEmittedTextByNode` and `latestPending` are reset per session via
+// SESSION_RESET from the SW so a restart on the same Meet tab starts clean.
+let lastEmittedTextByNode = new WeakMap(); // node → last full text we emitted
+let debounceTimer         = null;
 
-// Track which DOM nodes we've already emitted so we never double-send.
-const emittedNodes = new WeakSet();
-
-let debounceTimer = null;
+// Snapshot of the most recent extracted speaker/text for the still-growing
+// last caption item. Refreshed on every mutation regardless of prior emit
+// state. If Meet wipes the inner text just before our debounce fires (or
+// before the node is detached), or the user clicks Stop mid-utterance, we
+// fall back to this cache so the latest grown state isn't lost.
+let latestPending = null; // { node, speaker, text } | null
 
 // ============================================================================
 // Extract speaker + text from a single caption item node
@@ -52,38 +65,78 @@ function extractSegment(node) {
 }
 
 // ============================================================================
+// Decide what fresh text (if any) to send for this node, given the current
+// DOM text and what we've already emitted from it.
+//
+//   no prior emit       → send full current text (first segment from node)
+//   identical to prior  → null (nothing new)
+//   current startsWith  → continuation; send only the new tail
+//   else                → text reset / new utterance on same node; send full
+// ============================================================================
+function diffToEmit(node, currentText) {
+  const prior = lastEmittedTextByNode.get(node);
+  if (!prior) return currentText;
+  if (currentText === prior) return null;
+  if (currentText.startsWith(prior)) {
+    const tail = currentText.slice(prior.length).trim();
+    return tail || null;
+  }
+  return currentText;
+}
+
+// ============================================================================
 // Send a finalized segment to the service worker
+//
+// Reads the DOM first; if the node has been wiped, falls back to the cached
+// latestPending snapshot. The "full" text is recorded as the new emission
+// boundary so future continuation checks compare against cumulative content,
+// while the "tail" (when applicable) is what actually gets sent.
+//
+// Returns the in-flight sendMessage promise (or null if nothing to send) so
+// callers that need ordering — FLUSH_PENDING — can await it.
 // ============================================================================
 function emitSegment(node) {
-  if (emittedNodes.has(node)) return;
+  let { speaker, text } = extractSegment(node);
+  if (!text && latestPending && latestPending.node === node) {
+    speaker = latestPending.speaker;
+    text    = latestPending.text;
+  }
+  if (!text) return null;
 
-  const { speaker, text } = extractSegment(node);
-  if (!text) return; // skip blank lines (e.g. cleared container)
+  const toEmit = diffToEmit(node, text);
+  if (!toEmit) return null;
 
-  emittedNodes.add(node);
-  console.log(`[MeetPilot] segment → ${speaker}: ${text}`);
+  lastEmittedTextByNode.set(node, text);
+  console.log(`[MeetPilot] segment → ${speaker}: ${toEmit}`);
 
-  chrome.runtime.sendMessage({ type: 'SEGMENT', speaker, text })
+  const sent = chrome.runtime.sendMessage({ type: 'SEGMENT', speaker, text: toEmit })
     .catch(() => {
-      // Service worker may be sleeping (MV3 lifecycle); safe to swallow here.
-      // The SW in Checkpoint 4 will handle keeping itself alive during capture.
+      // SW may be briefly asleep during MV3 lifecycle; safe to swallow.
     });
+
+  if (latestPending && latestPending.node === node) latestPending = null;
+  return sent;
 }
 
 // ============================================================================
 // Finalization heuristic
 //
-// Two triggers — whichever fires first:
-//   1. A new caption item appears after the current one → the previous item is
-//      definitively final (Meet has moved to a new utterance).
-//   2. Debounce — the last item's text has not changed for DEBOUNCE_MS →
-//      the speaker has paused long enough that we treat it as final.
-//
-// This prevents capturing the same growing line dozens of times.
+// Triggers, in priority order:
+//   1. A new caption item appears after the current one → the previous item
+//      is definitively final (Meet moved to a new utterance).
+//   2. Captions container empties (items=0) → Meet just cleared the panel;
+//      flush the cached in-flight line now, before its text gets wiped.
+//   3. Debounce — the last item's text has not changed for DEBOUNCE_MS →
+//      treat it as final.
 // ============================================================================
 function onCaptionsChanged(container) {
   const items = container.querySelectorAll(SELECTORS.captionItem);
-  if (!items.length) return;
+
+  if (!items.length) {
+    // Container cleared — emit the cached in-flight caption right now.
+    flushPendingNow();
+    return;
+  }
 
   // Everything except the last item is definitively final.
   for (let i = 0; i < items.length - 1; i++) {
@@ -92,12 +145,26 @@ function onCaptionsChanged(container) {
     emitSegment(items[i]);
   }
 
-  // The last item is still growing — arm the debounce.
+  // The last item is still growing — refresh the cache and (re)arm the
+  // debounce. Crucially we do this even if we've previously emitted from this
+  // node: Meet re-uses the same div.nMcdL element across utterances, so the
+  // tail (case 1) or replacement (case 4) must still be picked up.
   const last = items[items.length - 1];
-  if (!emittedNodes.has(last)) {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => emitSegment(last), DEBOUNCE_MS);
-  }
+  const snapshot = extractSegment(last);
+  if (!snapshot.text) return;
+  if (lastEmittedTextByNode.get(last) === snapshot.text) return; // nothing new
+
+  latestPending = { node: last, ...snapshot };
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => emitSegment(last), DEBOUNCE_MS);
+}
+
+// Force-emit the cached in-flight caption right now (cancels the debounce).
+// Used on container-clear and on FLUSH_PENDING from the SW (Stop button).
+function flushPendingNow() {
+  clearTimeout(debounceTimer);
+  debounceTimer = null;
+  if (latestPending) emitSegment(latestPending.node);
 }
 
 // ============================================================================
@@ -142,6 +209,50 @@ function waitForContainer() {
 
   bodyObserver.observe(document.body, { childList: true, subtree: true });
   console.log('[MeetPilot] waiting for captions container…');
+}
+
+// ============================================================================
+// Lifecycle messages from the SW
+//
+//   SESSION_RESET — sent on START_CAPTURE. Clears per-session emission state
+//                   so a node Meet re-uses across sessions isn't muted by the
+//                   prior run.
+//   FLUSH_PENDING — sent on STOP_CAPTURE. Emits any cached in-flight caption
+//                   immediately so the SW can include it in the final flush
+//                   before /complete.
+// ============================================================================
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === 'SESSION_RESET') {
+    lastEmittedTextByNode = new WeakMap();
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+    latestPending = null;
+    console.log('[MeetPilot] session reset — emission state cleared');
+    sendResponse({ ok: true });
+    return; // sync response
+  }
+
+  if (msg.type === 'FLUSH_PENDING') {
+    handleFlushPending().then(() => sendResponse({ ok: true }));
+    return true; // keep channel open for async response
+  }
+});
+
+async function handleFlushPending() {
+  clearTimeout(debounceTimer);
+  debounceTimer = null;
+
+  if (!latestPending) return;
+
+  // emitSegment internally applies diffToEmit, so a continuation sends only
+  // the tail and a replacement sends the full new text. We await the returned
+  // promise so the SW's SEGMENT handler buffers this BEFORE our response
+  // unblocks the SW's STOP_CAPTURE handler.
+  const sent = emitSegment(latestPending.node);
+  if (sent) {
+    try { await sent; }
+    catch (e) { console.warn('[MeetPilot] flush-on-stop send failed:', e.message); }
+  }
 }
 
 waitForContainer();
