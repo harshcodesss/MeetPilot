@@ -20,6 +20,18 @@ let seq          = 0;    // monotonic counter; reset on each session start
 let lastFlushAt  = 0;    // Date.now() of last successful flush
 
 // ============================================================================
+// Broadcast a lifecycle message to every open Meet tab's content script.
+// Errors are swallowed — a tab without a listener (e.g. page still loading)
+// just means there's nothing on the other end to coordinate with.
+// ============================================================================
+async function broadcastToMeetTabs(message) {
+  const tabs = await chrome.tabs.query({ url: 'https://meet.google.com/*' });
+  await Promise.all(
+    tabs.map(tab => chrome.tabs.sendMessage(tab.id, message).catch(() => {})),
+  );
+}
+
+// ============================================================================
 // Thin fetch wrapper — throws on non-2xx
 // ============================================================================
 async function apiPost(path, body) {
@@ -82,6 +94,11 @@ async function handleMessage(msg) {
     seq         = 0;
     lastFlushAt = Date.now();
     await chrome.storage.session.set({ captureState });
+
+    // Tell open Meet tabs to clear per-session state so a node Meet re-uses
+    // across sessions isn't muted by the previous run's emittedNodes WeakSet.
+    await broadcastToMeetTabs({ type: 'SESSION_RESET' });
+
     console.log(`[MeetPilot SW] session started: ${data.session_id}`);
     return { ok: true, sessionId: data.session_id };
   }
@@ -92,6 +109,11 @@ async function handleMessage(msg) {
   if (msg.type === 'STOP_CAPTURE') {
     if (!captureState.isCapturing) return { ok: true };
     const sessionId = captureState.sessionId;
+
+    // Ask Meet tabs to emit any in-flight caption (still being typed when the
+    // user clicked Stop). Awaiting this guarantees the resulting SEGMENT
+    // message is buffered before our final flush below.
+    await broadcastToMeetTabs({ type: 'FLUSH_PENDING' });
 
     await flush(); // send any buffered segments before completing
 
