@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, String, Integer, Date, DateTime, ForeignKey, UniqueConstraint, JSON, func
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel
 
@@ -40,6 +40,21 @@ class SegmentDB(Base):
     __table_args__ = (
         UniqueConstraint("session_id", "seq", name="uq_segment_session_seq"),
     )
+
+class TaskDB(Base):
+    __tablename__ = "tasks"
+
+    task_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    session_id = Column(String(36), ForeignKey("sessions.session_id"), nullable=False, index=True)
+    assignee = Column(String, nullable=False)
+    action = Column(String, nullable=False)
+    deadline_raw = Column(String, nullable=True)
+    deadline_date = Column(Date, nullable=True)
+    type = Column(String, nullable=False)
+    confidence = Column(String, nullable=False)
+    placement = Column(String, nullable=False)
+    source_seq = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 # ---------------------------------------------------------------------------
