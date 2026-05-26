@@ -26,5 +26,5 @@ def build_transcript(db_session, session_id: str) -> tuple[str, datetime]:
     if not segments:
         return "", session.started_at
 
-    lines = [f"[{s.speaker}] {(s.text or '').strip()}" for s in segments]
+    lines = [f"[seq={s.seq}] [{s.speaker}] {(s.text or '').strip()}" for s in segments]
     return "\n".join(lines).rstrip(), session.started_at
