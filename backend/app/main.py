@@ -4,6 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .database import engine, get_db, Base
+from .queue.client import enqueue_extract
 from .models import (
     SessionDB,
     SegmentDB,
@@ -76,8 +77,7 @@ def complete_session(session_id: str, db: Session = Depends(get_db)):
     if session.status != "complete":
         session.status = "complete"
         db.commit()
-        # TODO: enqueue RQ extraction job when Subsystem 3 is built
-        print(f"[queue stub] session {session_id} complete — extraction job would be enqueued here")
+        enqueue_extract(session_id)
 
     return SessionCompleteResponse(session_id=session_id, status=session.status)
 
