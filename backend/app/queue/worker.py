@@ -36,6 +36,18 @@ def extract(session_id):
 
         tasks = GeminiProvider().extract(transcript, started_at)
 
+        # Delete-and-replace idempotency (locked decision): wipe any existing
+        # tasks for this session before inserting the fresh extraction. Both
+        # operations run inside one transaction — if the insert phase fails,
+        # the delete is rolled back too and prior state survives.
+        deleted = (
+            db.query(TaskDB)
+            .filter(TaskDB.session_id == session_id)
+            .delete(synchronize_session=False)
+        )
+        if deleted:
+            print(f"[worker] replaced {deleted} prior task(s) for session {session_id}")
+
         for t in tasks:
             db.add(TaskDB(
                 session_id=session_id,
