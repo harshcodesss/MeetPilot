@@ -1,23 +1,34 @@
+import logging
 import os
 from datetime import datetime
 
 from dotenv import load_dotenv
 from google import genai
+from pydantic import TypeAdapter, ValidationError
 
 from app.extraction.provider import ExtractionProvider
 from app.extraction.prompt import build_prompt
 from app.extraction.schemas import Task
 
+logger = logging.getLogger(__name__)
+
 # Locked model for MeetPilot extraction. GA, supports structured output,
 # stable name (never use *-latest aliases in production code).
 GEMINI_MODEL = "gemini-2.5-flash"
+
+# One TypeAdapter reused across calls — compiling the validator per call is wasted work.
+_TASK_LIST_ADAPTER = TypeAdapter(list[Task])
 
 
 class GeminiProvider(ExtractionProvider):
     """Real ExtractionProvider backed by Gemini structured output.
 
-    Validation/retry is deliberately not here — that's Task 11. This layer
-    trusts the SDK to constrain output to list[Task] via response_schema.
+    Validation+retry policy: Gemini occasionally returns output that fails
+    Pydantic validation (malformed JSON, wrong types, missing fields). On the
+    first ValidationError we log and retry the exact same call once. A second
+    failure propagates so RQ records the job as failed. First-attempt failures
+    are always logged even if the retry succeeds, so prompt-misfire frequency
+    stays visible (locked decision).
     """
 
     def __init__(self) -> None:
@@ -32,6 +43,16 @@ class GeminiProvider(ExtractionProvider):
     def extract(self, transcript: str, started_at: datetime) -> list[Task]:
         prompt = build_prompt(transcript, started_at)
 
+        try:
+            return self._call_and_validate(prompt)
+        except ValidationError as first_err:
+            logger.warning(
+                "Gemini output failed validation on first attempt; retrying once. error=%s",
+                first_err,
+            )
+            return self._call_and_validate(prompt)
+
+    def _call_and_validate(self, prompt: str) -> list[Task]:
         response = self._client.models.generate_content(
             model=GEMINI_MODEL,
             contents=prompt,
@@ -40,5 +61,4 @@ class GeminiProvider(ExtractionProvider):
                 "response_schema": list[Task],
             },
         )
-
-        return response.parsed
+        return _TASK_LIST_ADAPTER.validate_json(response.text)
