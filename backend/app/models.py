@@ -14,6 +14,37 @@ from .database import Base
 # timezone=True, UniqueConstraint). Switch is a single DATABASE_URL change.
 # ---------------------------------------------------------------------------
 
+class User(Base):
+    __tablename__ = "users"
+
+    user_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    google_sub = Column(String(255), unique=True, nullable=False, index=True)  # identity key — NOT email (emails change)
+    email = Column(String(320), nullable=False)
+    display_name = Column(String(255), nullable=False)
+    picture_url = Column(String(1024), nullable=True)
+    # Google OAuth tokens — server-side only, never sent to the extension.
+    # Stored as columns (not a separate oauth_credentials table) because v1 has one provider
+    # and no rotation-history requirement. Refactor only if a second provider lands.
+    google_access_token = Column(String, nullable=True)
+    google_refresh_token = Column(String, nullable=True)
+    google_token_expiry = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    auth_sessions = relationship("AuthSession", back_populates="user", cascade="all, delete-orphan")
+
+
+class AuthSession(Base):
+    """Opaque bearer-token row for the extension. Distinct from SessionDB (meetings)."""
+    __tablename__ = "auth_sessions"
+
+    token = Column(String(64), primary_key=True)  # 32 bytes hex = 64 chars
+    user_id = Column(String(36), ForeignKey("users.user_id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    last_used_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user = relationship("User", back_populates="auth_sessions")
+
+
 class SessionDB(Base):
     __tablename__ = "sessions"
 

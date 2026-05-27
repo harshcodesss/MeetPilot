@@ -1,8 +1,12 @@
+import os
 from datetime import datetime, timezone
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
+from starlette.middleware.sessions import SessionMiddleware
 
+from .api.auth import router as auth_router
 from .database import engine, get_db, Base
 from .queue.client import enqueue_extract
 from .models import (
@@ -15,9 +19,25 @@ from .models import (
     SegmentOut,
 )
 
+load_dotenv()
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="MeetPilot Ingest API", version="0.1.0")
+
+# SessionMiddleware powers Authlib's CSRF-state cookie on the OAuth flow.
+# Must be registered before any routers. https_only=False is dev-only.
+_auth_session_secret = os.environ.get("AUTH_SESSION_SECRET")
+if not _auth_session_secret:
+    raise RuntimeError("AUTH_SESSION_SECRET is not set. Add it to backend/.env.")
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=_auth_session_secret,
+    same_site="lax",
+    https_only=False,
+)
+
+app.include_router(auth_router)
 
 
 @app.post("/session/start", response_model=SessionStartResponse, status_code=201)
