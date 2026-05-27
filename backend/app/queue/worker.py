@@ -7,11 +7,16 @@
 # the crash entirely. For Linux/prod, drop `-w rq.SimpleWorker` to get the
 # default forking worker (job-level isolation).
 
+import logging
+import time
+
 from app.database import SessionLocal
 from app.models import TaskDB
 
 from app.extraction.ordering import build_transcript
 from app.extraction.gemini import GeminiProvider
+
+logger = logging.getLogger(__name__)
 
 # Below this many non-whitespace words the transcript is effectively empty
 # ("started capture, said nothing, stopped"). Skip the Gemini call entirely
@@ -20,21 +25,38 @@ MIN_TRANSCRIPT_WORDS = 5
 
 
 def extract(session_id):
-    print(f"[worker] extracting session {session_id}")
-
     db = SessionLocal()
     try:
-        transcript, started_at = build_transcript(db, session_id)
-
+        transcript, started_at, segment_count = build_transcript(db, session_id)
         word_count = len(transcript.split())
+
+        logger.info(
+            "extraction start: session=%s segments=%d chars=%d words=%d",
+            session_id, segment_count, len(transcript), word_count,
+        )
+
         if word_count < MIN_TRANSCRIPT_WORDS:
-            print(
-                f"[worker] session {session_id} skipped — "
-                f"transcript too short ({word_count} words, min {MIN_TRANSCRIPT_WORDS})"
+            logger.info(
+                "extraction skipped: session=%s transcript too short (words=%d, min=%d)",
+                session_id, word_count, MIN_TRANSCRIPT_WORDS,
             )
             return
 
-        tasks = GeminiProvider().extract(transcript, started_at)
+        t0 = time.perf_counter()
+        try:
+            tasks = GeminiProvider().extract(transcript, started_at)
+        except Exception as exc:
+            elapsed = time.perf_counter() - t0
+            logger.error(
+                "extraction failed: session=%s elapsed=%.2fs error=%r",
+                session_id, elapsed, exc,
+            )
+            raise
+        elapsed = time.perf_counter() - t0
+        logger.info(
+            "gemini call ok: session=%s tasks=%d elapsed=%.2fs",
+            session_id, len(tasks), elapsed,
+        )
 
         # Delete-and-replace idempotency (locked decision): wipe any existing
         # tasks for this session before inserting the fresh extraction. Both
@@ -46,7 +68,9 @@ def extract(session_id):
             .delete(synchronize_session=False)
         )
         if deleted:
-            print(f"[worker] replaced {deleted} prior task(s) for session {session_id}")
+            logger.info(
+                "replaced prior tasks: session=%s count=%d", session_id, deleted,
+            )
 
         for t in tasks:
             db.add(TaskDB(
@@ -61,6 +85,8 @@ def extract(session_id):
                 source_seq=t.source_seq,
             ))
         db.commit()
-        print(f"[worker] inserted {len(tasks)} task(s) for session {session_id}")
+        logger.info(
+            "extraction complete: session=%s inserted=%d", session_id, len(tasks),
+        )
     finally:
         db.close()

@@ -3,14 +3,14 @@ from datetime import datetime
 from app.models import SessionDB, SegmentDB
 
 
-def build_transcript(db_session, session_id: str) -> tuple[str, datetime]:
+def build_transcript(db_session, session_id: str) -> tuple[str, datetime, int]:
     """Load a session's segments in (timestamp, seq) order and return a
     speaker-labeled transcript ready for the extraction prompt.
 
-    Returns (labeled_text, started_at). An empty string is returned when the
-    session exists but has no segments (e.g. capture started, said nothing,
-    stopped). Raises ValueError if the session_id is unknown — that signals a
-    caller bug, not a normal empty case.
+    Returns (labeled_text, started_at, segment_count). An empty string and a
+    zero count are returned when the session exists but has no segments
+    (e.g. capture started, said nothing, stopped). Raises ValueError if the
+    session_id is unknown — that signals a caller bug, not a normal empty case.
     """
     session = db_session.get(SessionDB, session_id)
     if session is None:
@@ -24,7 +24,7 @@ def build_transcript(db_session, session_id: str) -> tuple[str, datetime]:
     )
 
     if not segments:
-        return "", session.started_at
+        return "", session.started_at, 0
 
     lines = [f"[seq={s.seq}] [{s.speaker}] {(s.text or '').strip()}" for s in segments]
-    return "\n".join(lines).rstrip(), session.started_at
+    return "\n".join(lines).rstrip(), session.started_at, len(segments)
