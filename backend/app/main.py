@@ -95,11 +95,16 @@ def append_segments(
         .all()
     }
 
+    # Meet labels the local participant's caption lines as "You". Substitute the
+    # session owner's display name here so the literal "You" never reaches the DB
+    # or the extraction prompt. Owner == authed caller (already checked above).
+    owner_label = user.display_name or user.email.split("@")[0]
+
     new_rows = [
         SegmentDB(
             session_id=session_id,
             seq=s.seq,
-            speaker=s.speaker,
+            speaker=(owner_label if s.speaker.strip().lower() == "you" else s.speaker),
             text=s.text,
             timestamp=s.timestamp,
         )
