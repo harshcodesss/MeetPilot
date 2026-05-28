@@ -88,6 +88,14 @@ class TaskDB(Base):
     confidence = Column(String, nullable=False)
     placement = Column(String, nullable=False)
     source_seq = Column(JSON, nullable=False)
+    # S4 drafting state — additive. draft_state walks extracted → awaiting_answers → answered → drafted.
+    # Re-extraction is delete-and-replace by session_id, which wipes these columns along with the row.
+    # This is the locked v1 behavior (S4 plan Decision 1 = A); production UI must warn before triggering.
+    draft_state = Column(String(32), nullable=False, default="extracted")
+    handler = Column(String(64), nullable=True)
+    questions = Column(JSON, nullable=True)
+    answers = Column(JSON, nullable=True)
+    draft = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
