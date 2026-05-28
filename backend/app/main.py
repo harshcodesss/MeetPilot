@@ -3,11 +3,14 @@ from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 
 from .api.auth import router as auth_router
+from .api.dashboard import router as dashboard_router
 from .auth.dependencies import get_current_user
+from .auth.ownership import _require_owned_session
 from .database import engine, get_db, Base
 from .queue.client import enqueue_extract
 from .models import (
@@ -39,23 +42,21 @@ app.add_middleware(
     https_only=False,
 )
 
+# CORS — allow the throwaway dashboard during dev. Covers both localhost and
+# 127.0.0.1 loopback names and Vite's port-fallback range (5173 if free,
+# 5174/5175 if 5173 is taken). Still no "*"; still allow_credentials=False.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):(5173|5174|5175)",
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=False,
+)
+
 app.include_router(auth_router)
+app.include_router(dashboard_router)
 
 
-def _require_owned_session(session_id: str, user: User, db: Session) -> SessionDB:
-    """Look up a session and verify the caller owns it.
-
-    Uniform 401/404/403 ladder for every session-touching endpoint:
-      - get_current_user already handled 401 by the time we get here.
-      - 404 if the session_id is unknown.
-      - 403 if the session exists but belongs to a different user.
-    """
-    session = db.get(SessionDB, session_id)
-    if session is None:
-        raise HTTPException(status_code=404, detail="Session not found")
-    if session.user_id != user.user_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    return session
 
 
 @app.post("/session/start", response_model=SessionStartResponse, status_code=201)
@@ -147,7 +148,7 @@ def read_segments(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Return stored segments ordered by (timestamp, seq). Debug use only."""
+    """Return stored segments ordered by (timestamp, seq). Used by the dashboard's transcript view and for ad-hoc debugging."""
     _require_owned_session(session_id, user, db)
     rows = (
         db.query(SegmentDB)

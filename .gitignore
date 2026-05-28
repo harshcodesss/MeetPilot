@@ -19,6 +19,7 @@ build/
 
 # node / frontend
 node_modules/
+dashboard/dist/
 .next/
 .env.local
 
