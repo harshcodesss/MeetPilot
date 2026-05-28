@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 
 from .api.auth import router as auth_router
+from .auth.dependencies import get_current_user
 from .database import engine, get_db, Base
 from .queue.client import enqueue_extract
 from .models import (
@@ -17,6 +18,7 @@ from .models import (
     SegmentsBatchResponse,
     SessionCompleteResponse,
     SegmentOut,
+    User,
 )
 
 load_dotenv()
@@ -40,10 +42,33 @@ app.add_middleware(
 app.include_router(auth_router)
 
 
+def _require_owned_session(session_id: str, user: User, db: Session) -> SessionDB:
+    """Look up a session and verify the caller owns it.
+
+    Uniform 401/404/403 ladder for every session-touching endpoint:
+      - get_current_user already handled 401 by the time we get here.
+      - 404 if the session_id is unknown.
+      - 403 if the session exists but belongs to a different user.
+    """
+    session = db.get(SessionDB, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session.user_id != user.user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return session
+
+
 @app.post("/session/start", response_model=SessionStartResponse, status_code=201)
-def start_session(db: Session = Depends(get_db)):
+def start_session(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     """Create a new session; returns session_id that the extension stores for the meeting."""
-    session = SessionDB(started_at=datetime.now(timezone.utc), status="active")
+    session = SessionDB(
+        user_id=user.user_id,
+        started_at=datetime.now(timezone.utc),
+        status="active",
+    )
     db.add(session)
     db.commit()
     db.refresh(session)
@@ -52,12 +77,13 @@ def start_session(db: Session = Depends(get_db)):
 
 @app.post("/session/{session_id}/segments", response_model=SegmentsBatchResponse)
 def append_segments(
-    session_id: str, body: SegmentsBatchRequest, db: Session = Depends(get_db)
+    session_id: str,
+    body: SegmentsBatchRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """Append a batch of finalized caption segments. Idempotent: duplicate seq values are skipped."""
-    session = db.get(SessionDB, session_id)
-    if session is None:
-        raise HTTPException(status_code=404, detail="Session not found")
+    session = _require_owned_session(session_id, user, db)
     if session.status != "active":
         raise HTTPException(status_code=409, detail="Session is already complete")
 
@@ -88,11 +114,13 @@ def append_segments(
 
 
 @app.post("/session/{session_id}/complete", response_model=SessionCompleteResponse)
-def complete_session(session_id: str, db: Session = Depends(get_db)):
-    """Mark a session complete. Idempotent. Stubs the extraction job enqueue (Subsystem 3)."""
-    session = db.get(SessionDB, session_id)
-    if session is None:
-        raise HTTPException(status_code=404, detail="Session not found")
+def complete_session(
+    session_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Mark a session complete. Idempotent. Enqueues the extraction job (Subsystem 3)."""
+    session = _require_owned_session(session_id, user, db)
 
     if session.status != "complete":
         session.status = "complete"
@@ -104,15 +132,18 @@ def complete_session(session_id: str, db: Session = Depends(get_db)):
 
 # ---------------------------------------------------------------------------
 # Debug read endpoint — not part of the production API contract; useful for
-# verifying E2E flow without touching SQLite directly.
+# verifying E2E flow without touching SQLite directly. Still auth-gated +
+# ownership-checked so it can't leak a stranger's transcript.
 # ---------------------------------------------------------------------------
 
 @app.get("/session/{session_id}/segments", response_model=list[SegmentOut])
-def read_segments(session_id: str, db: Session = Depends(get_db)):
+def read_segments(
+    session_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     """Return stored segments ordered by (timestamp, seq). Debug use only."""
-    session = db.get(SessionDB, session_id)
-    if session is None:
-        raise HTTPException(status_code=404, detail="Session not found")
+    _require_owned_session(session_id, user, db)
     rows = (
         db.query(SegmentDB)
         .filter(SegmentDB.session_id == session_id)

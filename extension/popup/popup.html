@@ -13,12 +13,28 @@
   </div>
 
   <div class="body">
-    <div class="status-text" id="statusText">Idle</div>
-    <div class="session-id" id="sessionId"></div>
-    <div class="prompt-banner" id="promptBanner">
-      You're in a Google Meet — start capturing?
+    <!-- Token-paste state: shown when chrome.storage.local.authToken is empty.
+         JS toggles display:block / display:none. -->
+    <div class="token-section" id="tokenSection">
+      <div class="token-hint">
+        Open
+        <a href="http://localhost:8000/auth/google/login" target="_blank" rel="noopener">localhost:8000/auth/google/login</a>
+        in a tab, sign in with Google, then paste the token below.
+      </div>
+      <input type="text" id="tokenInput" placeholder="Paste your token here" autocomplete="off" />
+      <button class="btn btn-start" id="saveTokenBtn">Save token</button>
     </div>
-    <button class="btn btn-start" id="btn">Start Capture</button>
+
+    <!-- Main state: shown when a token is stored. -->
+    <div class="main-section" id="mainSection">
+      <div class="status-text" id="statusText">Idle</div>
+      <div class="session-id" id="sessionId"></div>
+      <div class="prompt-banner" id="promptBanner">
+        You're in a Google Meet — start capturing?
+      </div>
+      <button class="btn btn-start" id="btn">Start Capture</button>
+      <a class="signout-link" id="signoutLink" href="#">Sign out</a>
+    </div>
   </div>
 
   <script src="popup.js"></script>

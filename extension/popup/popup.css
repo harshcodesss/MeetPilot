@@ -193,6 +193,52 @@ body {
 .btn-stop          { background: var(--danger);       box-shadow: var(--shadow-danger); color: var(--on-accent); }
 .btn-stop:hover    { background: var(--danger-hover); }
 
+/* ---------- Token-paste section (no-token state) ---------- */
+
+.token-section { display: none; }
+
+.token-hint {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+.token-hint a {
+  color: var(--accent);
+  text-decoration: none;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.token-hint a:hover { color: var(--accent-hover); }
+
+#tokenInput {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 180ms ease;
+}
+#tokenInput:focus { border-color: var(--accent-border); }
+
+/* ---------- Sign-out link ---------- */
+
+.signout-link {
+  display: block;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: center;
+  text-decoration: none;
+  transition: color 180ms ease;
+}
+.signout-link:hover { color: var(--text-secondary); }
+
 /* Respect users who prefer less motion */
 @media (prefers-reduced-motion: reduce) {
   body, .prompt-banner, .status-dot.active { animation: none; }

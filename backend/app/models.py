@@ -31,6 +31,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     auth_sessions = relationship("AuthSession", back_populates="user", cascade="all, delete-orphan")
+    sessions = relationship("SessionDB", back_populates="user", cascade="all, delete-orphan")
 
 
 class AuthSession(Base):
@@ -49,10 +50,12 @@ class SessionDB(Base):
     __tablename__ = "sessions"
 
     session_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.user_id"), nullable=False, index=True)
     started_at = Column(DateTime(timezone=True), nullable=False)
     status = Column(String(16), nullable=False, default="active")  # active | complete
     title = Column(String(255), nullable=True)
 
+    user = relationship("User", back_populates="sessions")
     segments = relationship("SegmentDB", back_populates="session", cascade="all, delete-orphan")
 
 

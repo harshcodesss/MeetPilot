@@ -9,6 +9,27 @@ const FLUSH_SEGMENT_COUNT = 25;
 const FLUSH_INTERVAL_MS   = 20_000; // 20 s
 
 // ============================================================================
+// Auth — bearer token stored in chrome.storage.local, sent on every API call.
+// AuthError signals "popup needs to show the paste-token state" (no token, or
+// the backend just told us the token is invalid).
+// ============================================================================
+class AuthError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
+
+async function getAuthToken() {
+  const { authToken } = await chrome.storage.local.get('authToken');
+  return authToken || null;
+}
+
+async function clearAuthToken() {
+  await chrome.storage.local.remove('authToken');
+}
+
+// ============================================================================
 // In-memory state
 // captureState is also mirrored to chrome.storage.session so the popup can
 // read it. Buffer and seq live only in memory: receiving SEGMENT messages from
@@ -32,14 +53,28 @@ async function broadcastToMeetTabs(message) {
 }
 
 // ============================================================================
-// Thin fetch wrapper — throws on non-2xx
+// Thin fetch wrapper — adds the bearer header, throws on non-2xx.
+// AuthError fires on missing token (no header to send) or 401 (backend rejected
+// the token). 401 also clears the stored token so the popup reverts to the
+// paste-token state via chrome.storage.local.onChanged.
 // ============================================================================
 async function apiPost(path, body) {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new AuthError('No auth token — connect your account in the popup.');
+  }
   const res = await fetch(`${BACKEND_URL}${path}`, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
     body:    JSON.stringify(body),
   });
+  if (res.status === 401) {
+    await clearAuthToken();
+    throw new AuthError('Session expired — reconnect your account in the popup.');
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
     throw new Error(`POST ${path} → HTTP ${res.status}: ${text}`);
