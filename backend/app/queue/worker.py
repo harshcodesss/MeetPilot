@@ -15,6 +15,7 @@ from app.models import TaskDB
 
 from app.extraction.ordering import build_transcript
 from app.extraction.gemini import GeminiProvider
+from app.automation.runner import build_context_for_task, draft_one_task
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,28 @@ def extract(session_id):
         db.commit()
         logger.info(
             "extraction complete: session=%s inserted=%d", session_id, len(tasks),
+        )
+
+        # ----- S4 Phase A drafting pass -----------------------------------
+        # Route each just-inserted task to its handler and draft inline.
+        # `draft_one_task` swallows per-task handler failures internally —
+        # one bad draft must not fail the whole drafting pass. The same
+        # function is reused by Phase B's draft_task(task_id) job (single
+        # drafting code path, locked by the plan).
+        tasks_to_draft = (
+            db.query(TaskDB)
+            .filter(TaskDB.session_id == session_id)
+            .order_by(TaskDB.created_at)
+            .all()
+        )
+        for task in tasks_to_draft:
+            context = build_context_for_task(task, db)
+            draft_one_task(task, context, db, answers=None)
+        db.commit()
+        drafted_count = sum(1 for t in tasks_to_draft if t.draft_state == "drafted")
+        logger.info(
+            "drafting pass complete: session=%s tasks_examined=%d drafted=%d",
+            session_id, len(tasks_to_draft), drafted_count,
         )
     finally:
         db.close()
