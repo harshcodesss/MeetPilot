@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 
 PROMPT_TEMPLATE = """\
@@ -37,17 +37,44 @@ An "unassigned" task is still a real task. Do NOT drop it. Do NOT route it to
 DEADLINES
 ================================================================================
 
-The meeting started at: {started_at_iso}
-Use that timestamp as the anchor for relative phrases.
+Meeting anchor (use this as the reference for ALL relative phrases):
+  Day-of-week: {meeting_weekday}
+  Date:        {meeting_date_iso}
+  Full ISO:    {started_at_iso}
 
-Rules:
-- ALWAYS preserve the speaker's exact phrasing in deadline_raw (e.g.
-  "by Friday", "end of next week", "before the demo").
-- ONLY fill deadline_date when you can resolve it with high confidence
-  ("by Friday" relative to a known week = yes; "soon" or "eventually" = no).
-- Ambiguous, vague, or non-temporal phrases → deadline_date: null.
-- A WRONG date is worse than no date. When in doubt, leave it null.
-- If there is no deadline at all → deadline_raw: null, deadline_date: null.
+(For context — current timestamp at extraction time: {now_iso}. This is NOT the
+anchor; always resolve relative phrases against the meeting anchor above.)
+
+Date lookup — use these dates VERBATIM. Do NOT compute weekdays yourself:
+
+{calendar_block}
+
+Resolution rules:
+
+- "by <weekday>", "on <weekday>", "this <weekday>"
+    → that weekday's date FROM THE TABLE ABOVE.
+    The deadline IS that day, NOT the day after. This is critical.
+    Example: meeting on Wednesday 2026-05-27, speaker says "by Friday"
+      → deadline_date: 2026-05-29  (Friday itself)
+      → deadline_date: 2026-05-30  is WRONG (that's Saturday)
+    Example: same meeting, speaker says "by Thursday"
+      → deadline_date: 2026-05-28  (Thursday itself)
+      → deadline_date: 2026-05-29  is WRONG.
+
+- "next <weekday>" → the FOLLOWING calendar week's occurrence (skip past the
+  same-week one in the table). The table marks these explicitly with
+  "(next week)".
+
+- "tomorrow"                  → meeting day + 1 (the row labeled tomorrow).
+- "end of this week" / "EOW"  → Friday's date from the table.
+- "by next week"   (no specific day)  → ambiguous; set deadline_date: null.
+- "soon" / "eventually" / "ASAP"      → vague; set deadline_date: null.
+
+Always preserve the speaker's verbatim phrasing in `deadline_raw`
+(e.g. "by Friday", "end of next week", "before the demo").
+
+A WRONG date is worse than no date. When in doubt, set deadline_date: null.
+If there is no deadline at all: deadline_raw: null AND deadline_date: null.
 
 ================================================================================
 TYPE — what kind of follow-up action does this commitment imply?
@@ -136,13 +163,42 @@ Return ONLY the JSON array. No prose, no markdown fences, no commentary.
 """
 
 
+def _build_calendar_block(started_at: datetime) -> str:
+    """Render a verbatim weekday→date lookup the model can consult without
+    doing any calendar arithmetic itself. Covers the meeting day plus the
+    next 13 days so both same-week and "next <weekday>" phrases resolve."""
+    rows = []
+    for i in range(14):
+        d = started_at + timedelta(days=i)
+        weekday = d.strftime("%A")
+        date_iso = d.strftime("%Y-%m-%d")
+        if i == 0:
+            tag = " ← meeting day"
+        elif i == 1:
+            tag = " ← tomorrow"
+        elif i < 7:
+            tag = ""
+        elif i == 7:
+            tag = " ← one week later"
+        else:
+            tag = "  (next week)"
+        rows.append(f"  {weekday:<10} {date_iso}{tag}")
+    return "\n".join(rows)
+
+
 def build_prompt(transcript: str, started_at: datetime) -> str:
     """Render the extraction prompt for a single session.
 
-    `started_at` is the meeting anchor; the LLM uses it to resolve relative
-    deadline phrases like "by Friday" into absolute dates.
+    `started_at` is the meeting anchor; all relative deadline phrases
+    ("by Friday", "tomorrow", "next week") resolve against it. We give the
+    model both the weekday name AND a pre-computed 14-day calendar so it
+    never has to derive weekdays on its own.
     """
     return PROMPT_TEMPLATE.format(
+        meeting_weekday=started_at.strftime("%A"),
+        meeting_date_iso=started_at.strftime("%Y-%m-%d"),
         started_at_iso=started_at.isoformat(),
+        now_iso=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        calendar_block=_build_calendar_block(started_at),
         transcript=transcript,
     )
