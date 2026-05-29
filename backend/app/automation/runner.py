@@ -128,7 +128,22 @@ def draft_one_task(
             task.session_id, task.task_id, handler_name, elapsed,
         )
     elif isinstance(result, QuestionsResult):
-        # Phase B turns this branch on. Phase A handlers never return
-        # questions; lay the if/elif now so Phase B's diff is logic, not
-        # restructure.
-        pass
+        # Decision 5 (LOCKED): question handling lives in this shared runner,
+        # not in either worker caller. First-call → store + flip state. Answer
+        # mode → defensive: should never happen (Decision 4's prompt rules
+        # forbid it), but if it does, leave the row at 'answered' and log.
+        if answers is None:
+            task.questions = [q.model_dump() for q in result.questions]
+            task.draft_state = "awaiting_answers"
+            task.handler = handler_name
+            logger.info(
+                "awaiting answers: session=%s task=%s handler=%s questions=%d elapsed=%.2fs",
+                task.session_id, task.task_id, handler_name,
+                len(result.questions), elapsed,
+            )
+        else:
+            logger.warning(
+                "handler returned questions despite answers being present — leaving row at prior state: "
+                "task=%s handler=%s",
+                task.task_id, handler_name,
+            )

@@ -9,9 +9,14 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.automation.base import ActionHandler, DraftResult, QuestionsResult
+from app.automation.base import (
+    ActionHandler,
+    DraftResult,
+    QuestionsResult,
+    question_ceiling_for,
+)
 from app.automation.context import MeetingContext
-from app.automation.llm import draft_with_schema
+from app.automation.llm import draft_or_ask_with_schema, question_rules
 from app.models import TaskDB
 
 
@@ -65,6 +70,7 @@ RULES
 - Do NOT invent context not in the transcript or task. If you don't know
   who the email goes to, that's fine — the user will add the recipient.
 
+{question_rules}
 ================================================================================
 OUTPUT
 ================================================================================
@@ -82,9 +88,8 @@ class GmailHandler(ActionHandler):
         context: MeetingContext,
         answers: Optional[dict[str, str]] = None,
     ) -> DraftResult | QuestionsResult:
-        # Phase A: always draft. Phase B will branch on confidence to maybe
-        # return QuestionsResult instead. `answers` is accepted now so the
-        # signature is final on day one.
+        ceiling = question_ceiling_for(task.confidence)
+        is_answer_mode = answers is not None
         prompt = GMAIL_DRAFT_PROMPT.format(
             user_display_name=context.user_display_name,
             session_started_at=context.session_started_at.strftime("%Y-%m-%d %H:%M"),
@@ -94,10 +99,10 @@ class GmailHandler(ActionHandler):
             deadline_raw=task.deadline_raw or "(none)",
             deadline_date=task.deadline_date or "(none)",
             transcript_excerpt=context.transcript_excerpt or "(none)",
+            question_rules=question_rules(ceiling, is_answer_mode),
         )
-        draft = draft_with_schema(prompt, GmailDraft)
-        # Defensive: force recipient blank even if the model decides to fill it.
-        # Locked by CLAUDE.md — recipient stays blank in v1, full stop.
-        fields = draft.model_dump()
-        fields["recipient"] = ""
-        return DraftResult(fields=fields)
+        result = draft_or_ask_with_schema(prompt, GmailDraft, ceiling)
+        if isinstance(result, DraftResult):
+            # Locked by CLAUDE.md — recipient stays blank in v1, full stop.
+            result.fields["recipient"] = ""
+        return result

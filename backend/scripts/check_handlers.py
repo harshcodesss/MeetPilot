@@ -13,6 +13,7 @@ from datetime import date, datetime, timezone
 
 sys.path.insert(0, ".")
 
+from app.automation.base import DraftResult, QuestionsResult
 from app.automation.context import MeetingContext
 from app.automation.router import route
 from app.automation.runner import _HANDLERS
@@ -33,6 +34,7 @@ CONTEXT = MeetingContext(
         "[seq=7] [harsh Rathi] I need to submit my expense report by EOW.\n"
         "[seq=8] [harsh Rathi] I'll write up the architecture doc for the new caching layer.\n"
         "[seq=9] [harsh Rathi] Also, personally I want to read up on the new caching-layer design ideas this weekend.\n"
+        "[seq=10] [harsh Rathi] Oh and I should follow up with the partner about the thing we talked about last week.\n"
     ),
 )
 
@@ -136,6 +138,17 @@ CASES = [
                action="Read up on the new caching-layer design ideas",
                assignee="unassigned",
                source_seq=(9,))),
+
+    # Phase B Task 5a — deliberately vague low-confidence task. Gmail handler
+    # should return 1–3 QUESTIONS, not a draft, because the source action
+    # genuinely lacks the info needed to write a paste-ready email
+    # (no recipient cue, no subject cue, "the thing we talked about" is opaque).
+    ("gmail",
+     make_task(type="email",
+               action="Follow up with the partner about the thing we discussed",
+               assignee="harsh Rathi",
+               source_seq=(10,),
+               confidence="low")),
 ]
 
 
@@ -175,13 +188,19 @@ def main() -> int:
         elapsed = time.perf_counter() - t0
 
         print(f"\n{'=' * 80}")
-        print(f"  {expected_name.upper():<20} (took {elapsed:.1f}s)")
+        print(f"  {expected_name.upper():<20} (took {elapsed:.1f}s)  confidence={task.confidence}")
         print(f"  source action: {task.action}")
         print(f"  source assignee: {task.assignee}")
         print(f"  source deadline: raw={task.deadline_raw!r}, date={task.deadline_date}")
         print(f"{'-' * 80}")
-        # `result` is a DraftResult; pretty-print its fields dict.
-        print(json.dumps(result.fields, indent=2, default=str))
+        if isinstance(result, DraftResult):
+            print(f"  result: DRAFT")
+            print(json.dumps(result.fields, indent=2, default=str))
+        elif isinstance(result, QuestionsResult):
+            print(f"  result: QUESTIONS ({len(result.questions)})")
+            print(json.dumps([q.model_dump() for q in result.questions], indent=2, default=str))
+        else:
+            print(f"  result: UNKNOWN ({type(result).__name__})")
 
         # Spacing between calls so the free-tier 5 RPM cap doesn't 429 us.
         if i < len(CASES) - 1:

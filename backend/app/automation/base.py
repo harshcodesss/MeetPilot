@@ -11,7 +11,7 @@ result type.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, ClassVar, Generic, Literal, Optional, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -20,19 +20,51 @@ if TYPE_CHECKING:
     from app.models import TaskDB
 
 
+# Phase B Task 5a — locked decisions:
+# - Decision 3: ceiling=0 (high-conf) bypasses the envelope; the handler uses
+#   the draft-only schema, identical to Phase A. ceiling>0 uses HandlerEnvelope.
+# - Question budget per S3 confidence (Flow PDF §3, LOCKED): high→0, mod→1, low→3.
+_CONFIDENCE_CEILINGS = {"high": 0, "moderate": 1, "low": 3}
+
+
+def question_ceiling_for(confidence: str) -> int:
+    """Map S3 confidence to the question-budget ceiling for this task."""
+    return _CONFIDENCE_CEILINGS.get(confidence, 0)
+
+
+class Question(BaseModel):
+    """One clarifying question. Stable id (`q1`/`q2`/`q3`) lets the answer
+    endpoint (Phase B Task 6) key answers back to the question."""
+    id: str = Field(description="Stable per-task: q1, q2, q3.")
+    text: str = Field(description="The question to ask the user.")
+    hint: Optional[str] = Field(default=None, description="Optional hint shown beneath.")
+
+
 class DraftResult(BaseModel):
     """The handler had enough info — here are the drafted fields."""
     fields: dict
 
 
 class QuestionsResult(BaseModel):
-    """The handler needs more info before it can draft.
+    """The handler needs more info before it can draft."""
+    questions: list[Question] = Field(default_factory=list)
 
-    Each question is a dict with stable keys: {"id": str, "text": str,
-    "hint": str | None}. Ids are stable WITHIN the task so the answer
-    endpoint (Phase B Task 6) can key answers back to questions.
+
+T = TypeVar("T", bound=BaseModel)
+
+
+class HandlerEnvelope(BaseModel, Generic[T]):
+    """Wire shape Gemini returns when ceiling>0 — a discriminated envelope
+    expressed via Optional fields (the discriminated-Union form isn't in
+    google-genai's structured-output schema subset; confirmed via
+    `scripts/smoke_union_schema.py` / `scripts/smoke_envelope_schema.py`).
+
+    The handler's `draft_or_ask_with_schema` caller parameterizes T with the
+    per-handler draft schema (e.g. `HandlerEnvelope[GmailDraft]`).
     """
-    questions: list[dict] = Field(default_factory=list)
+    mode: Literal["draft", "questions"]
+    draft: Optional[T] = None
+    questions: Optional[list[Question]] = None
 
 
 class ActionHandler(ABC):
