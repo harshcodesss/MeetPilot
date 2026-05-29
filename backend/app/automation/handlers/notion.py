@@ -10,9 +10,14 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.automation.base import ActionHandler, DraftResult, QuestionsResult
+from app.automation.base import (
+    ActionHandler,
+    DraftResult,
+    QuestionsResult,
+    question_ceiling_for,
+)
 from app.automation.context import MeetingContext
-from app.automation.llm import draft_with_schema
+from app.automation.llm import draft_or_ask_with_schema, question_rules
 from app.models import TaskDB
 
 
@@ -70,6 +75,7 @@ RULES
 - bodies: 2–4 sentences each. No filler like "TBD" / "to be added later".
 - Do NOT invent facts, links, owners, or dates not in the task or transcript.
 
+{question_rules}
 ================================================================================
 OUTPUT
 ================================================================================
@@ -87,6 +93,7 @@ class NotionHandler(ActionHandler):
         context: MeetingContext,
         answers: Optional[dict[str, str]] = None,
     ) -> DraftResult | QuestionsResult:
+        ceiling = question_ceiling_for(task.confidence)
         prompt = NOTION_DRAFT_PROMPT.format(
             user_display_name=context.user_display_name,
             session_started_at=context.session_started_at.strftime("%Y-%m-%d %H:%M"),
@@ -96,6 +103,6 @@ class NotionHandler(ActionHandler):
             deadline_raw=task.deadline_raw or "(none)",
             deadline_date=task.deadline_date or "(none)",
             transcript_excerpt=context.transcript_excerpt or "(none)",
+            question_rules=question_rules(ceiling, answers is not None),
         )
-        draft = draft_with_schema(prompt, NotionDraft)
-        return DraftResult(fields=draft.model_dump())
+        return draft_or_ask_with_schema(prompt, NotionDraft, ceiling)

@@ -10,9 +10,14 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.automation.base import ActionHandler, DraftResult, QuestionsResult
+from app.automation.base import (
+    ActionHandler,
+    DraftResult,
+    QuestionsResult,
+    question_ceiling_for,
+)
 from app.automation.context import MeetingContext
-from app.automation.llm import draft_with_schema
+from app.automation.llm import draft_or_ask_with_schema, question_rules
 from app.models import TaskDB
 
 
@@ -54,6 +59,7 @@ RULES
   handler was picked; still draft, but flag with a note in the task field.
 - due: copy `deadline_date` if real; null otherwise.
 
+{question_rules}
 ================================================================================
 OUTPUT
 ================================================================================
@@ -71,6 +77,7 @@ class AsanaHandler(ActionHandler):
         context: MeetingContext,
         answers: Optional[dict[str, str]] = None,
     ) -> DraftResult | QuestionsResult:
+        ceiling = question_ceiling_for(task.confidence)
         prompt = ASANA_DRAFT_PROMPT.format(
             user_display_name=context.user_display_name,
             session_started_at=context.session_started_at.strftime("%Y-%m-%d %H:%M"),
@@ -80,6 +87,6 @@ class AsanaHandler(ActionHandler):
             deadline_raw=task.deadline_raw or "(none)",
             deadline_date=task.deadline_date or "(none)",
             transcript_excerpt=context.transcript_excerpt or "(none)",
+            question_rules=question_rules(ceiling, answers is not None),
         )
-        draft = draft_with_schema(prompt, AsanaDraft)
-        return DraftResult(fields=draft.model_dump())
+        return draft_or_ask_with_schema(prompt, AsanaDraft, ceiling)

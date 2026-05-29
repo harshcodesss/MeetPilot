@@ -35,6 +35,17 @@ CONTEXT = MeetingContext(
         "[seq=8] [harsh Rathi] I'll write up the architecture doc for the new caching layer.\n"
         "[seq=9] [harsh Rathi] Also, personally I want to read up on the new caching-layer design ideas this weekend.\n"
         "[seq=10] [harsh Rathi] Oh and I should follow up with the partner about the thing we talked about last week.\n"
+        # seqs 11–18: deliberately-vague lines for Phase B Task 5b's per-handler
+        # vague-case verifies. Each pair (transcript line + test case) should
+        # trip the model's "this is too thin to draft, ask the user" gate.
+        "[seq=11] [harsh Rathi] We also need to coordinate with the team on the planning thing.\n"
+        "[seq=12] [harsh Rathi] Yeah, let's get a meeting on the calendar for it soon.\n"
+        "[seq=13] [harsh Rathi] I should set a reminder to take care of the other item by EOW.\n"
+        "[seq=14] [harsh Rathi] Let's open a ticket for that issue we were debugging earlier.\n"
+        "[seq=15] [harsh Rathi] And someone slack the team about the update at some point.\n"
+        "[seq=16] [harsh Rathi] We should also write up some documentation for the project.\n"
+        "[seq=17] [harsh Rathi] Aman, can you handle that followup item we discussed?\n"
+        "[seq=18] [harsh Rathi] And look into that other thing too when you get a chance.\n"
     ),
 )
 
@@ -149,12 +160,63 @@ CASES = [
                assignee="harsh Rathi",
                source_seq=(10,),
                confidence="low")),
+
+    # Phase B Task 5b — vague-low cases for the remaining 7 handlers. Each
+    # should produce QUESTIONS, not a draft.
+    ("calendar_event",
+     make_task(type="scheduling",
+               action="Schedule the planning meeting with the team",
+               assignee="harsh Rathi",
+               source_seq=(11, 12),
+               confidence="low")),
+
+    ("calendar_deadline",
+     make_task(type="scheduling",
+               action="Take care of the other item by EOW",
+               assignee="harsh Rathi",
+               source_seq=(13,),
+               confidence="low")),
+
+    ("jira",
+     make_task(type="other",
+               action="Open a ticket for the issue we discussed",
+               assignee="harsh Rathi",
+               source_seq=(14,),
+               confidence="low")),
+
+    ("slack",
+     make_task(type="other",
+               action="Slack the team about the update",
+               assignee="harsh Rathi",
+               source_seq=(15,),
+               confidence="low")),
+
+    ("notion",
+     make_task(type="document",
+               action="Write up documentation for the project",
+               assignee="harsh Rathi",
+               source_seq=(16,),
+               confidence="low")),
+
+    ("asana",
+     make_task(type="other",
+               action="Handle the followup item we discussed",
+               assignee="Aman",
+               source_seq=(17,),
+               confidence="low")),
+
+    ("todo",
+     make_task(type="other",
+               action="Look into the other thing",
+               assignee="unassigned",
+               source_seq=(18,),
+               confidence="low")),
 ]
 
 
-# Gemini free tier is 5 RPM on gemini-2.5-flash — sleep between calls to
-# stay under the cap. Total runtime ≈ 8 × 13s = ~105s.
-RATE_LIMIT_SLEEP_S = 13
+# Gemini free tier is 15 RPM on gemini-3.1-flash-lite — 6s spacing keeps us
+# under the cap with safety margin. Total runtime for 16 cases ≈ ~140s.
+RATE_LIMIT_SLEEP_S = 6
 
 
 def main() -> int:
