@@ -15,18 +15,32 @@ from sqlalchemy.orm import Session
 
 from app.automation.base import ActionHandler, DraftResult, QuestionsResult
 from app.automation.context import MeetingContext
+from app.automation.handlers.asana import AsanaHandler
+from app.automation.handlers.calendar_deadline import CalendarDeadlineHandler
+from app.automation.handlers.calendar_event import CalendarEventHandler
 from app.automation.handlers.gmail import GmailHandler
+from app.automation.handlers.jira import JiraHandler
+from app.automation.handlers.notion import NotionHandler
+from app.automation.handlers.slack import SlackHandler
+from app.automation.handlers.todo import TodoHandler
 from app.automation.router import route
 from app.models import TaskDB, SegmentDB, SessionDB
 
 logger = logging.getLogger(__name__)
 
 
-# Handler registry: name → singleton instance. Add entries here as new
-# handlers land in Phase A Task 4. The router (Task 2) returns the NAME
-# (e.g. "gmail"); this dict resolves it to the running instance.
+# Handler registry: name → singleton instance. The router (Task 2) returns
+# the NAME (e.g. "gmail"); this dict resolves it to the running instance.
+# Eight entries — full Phase A coverage.
 _HANDLERS: dict[str, ActionHandler] = {
     "gmail": GmailHandler(),
+    "calendar_event": CalendarEventHandler(),
+    "calendar_deadline": CalendarDeadlineHandler(),
+    "jira": JiraHandler(),
+    "slack": SlackHandler(),
+    "todo": TodoHandler(),
+    "notion": NotionHandler(),
+    "asana": AsanaHandler(),
 }
 
 

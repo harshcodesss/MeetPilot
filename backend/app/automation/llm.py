@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from google import genai
 from pydantic import BaseModel
 
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 
 _client: genai.Client | None = None
 
