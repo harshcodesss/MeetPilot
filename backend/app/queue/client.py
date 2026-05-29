@@ -16,3 +16,12 @@ q = Queue(connection=redis_connection)
 
 def enqueue_extract(session_id):
     return q.enqueue("app.queue.worker.extract", session_id)
+
+
+def enqueue_draft_task(task_id):
+    """Enqueue a single-task draft job. Triggered by the answers endpoint
+    (Phase B Task 6) after the user submits answers on an awaiting_answers
+    task — the worker re-runs the handler with `answers` populated and
+    drafts the action.
+    """
+    return q.enqueue("app.queue.worker.draft_task", task_id)

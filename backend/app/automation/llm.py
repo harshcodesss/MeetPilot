@@ -110,7 +110,7 @@ To ask questions:   set `mode` = "questions", fill `questions` with 1 to
                     {{"id": "q1", "text": "...", "hint": "..." | null}}.
 """
 
-_ANSWER_MODE_BLOCK = """\
+_ANSWER_MODE_BLOCK_TEMPLATE = """\
 ================================================================================
 ANSWER MODE — MUST DRAFT
 ================================================================================
@@ -118,19 +118,64 @@ ANSWER MODE — MUST DRAFT
 The user has already answered your prior clarifying questions. You MUST
 draft now. Do NOT ask further questions. Return `mode` = "draft" with the
 `draft` field filled; leave `questions` null.
+
+Your prior questions and the user's answers:
+{qa_block}
+
+Use the answers as factual context. For any question the user left blank
+or didn't answer, draft with what's available — do NOT invent specifics
+the user explicitly declined to provide.
 """
 
 
-def question_rules(ceiling: int, is_answer_mode: bool) -> str:
+def _render_qa_block(
+    prior_questions: list[dict] | None,
+    answers: dict[str, str] | None,
+) -> str:
+    """Render the prior-Q + user-answer mapping for the answer-mode block.
+
+    Per CR-3, three answer states are distinguishable:
+    - Key present + non-empty value     → render verbatim.
+    - Key present + empty-string value  → "(blank — user declined)".
+    - Key missing from answers dict     → "(no answer submitted)".
+    """
+    if not prior_questions:
+        return "  (no prior questions on record — drafting from scratch)"
+
+    answers = answers or {}
+    lines: list[str] = []
+    for q in prior_questions:
+        qid = q.get("id", "?")
+        qtext = q.get("text", "")
+        if qid not in answers:
+            ans = "(no answer submitted)"
+        elif answers[qid] == "":
+            ans = "(blank — user declined)"
+        else:
+            ans = f'"{answers[qid]}"'
+        lines.append(f'  {qid}: "{qtext}"')
+        lines.append(f"       → {ans}")
+    return "\n".join(lines)
+
+
+def question_rules(
+    ceiling: int,
+    is_answer_mode: bool,
+    prior_questions: list[dict] | None = None,
+    answers: dict[str, str] | None = None,
+) -> str:
     """Render the question-budget block for a handler prompt.
 
-    - is_answer_mode=True → must-draft block, regardless of ceiling.
-    - ceiling=0 (high-conf, must-draft) → empty (no questions allowed; the
-      caller ALSO swaps the response schema to draft-only per Decision 3).
-    - ceiling>0 → the draft-or-ask block with the cap rendered in.
+    - is_answer_mode=True → must-draft block with rendered Q+A (Decision 6).
+    - ceiling=0 (high-conf, must-draft, first call) → empty (no questions
+      allowed; the caller ALSO swaps the response schema to draft-only per
+      Decision 3).
+    - ceiling>0 (first call, lower confidence) → the draft-or-ask block.
     """
     if is_answer_mode:
-        return _ANSWER_MODE_BLOCK
+        return _ANSWER_MODE_BLOCK_TEMPLATE.format(
+            qa_block=_render_qa_block(prior_questions, answers),
+        )
     if ceiling == 0:
         return ""
     return _DRAFT_OR_ASK_BLOCK.format(ceiling=ceiling)

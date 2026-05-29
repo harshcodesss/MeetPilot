@@ -113,3 +113,52 @@ def extract(session_id):
         )
     finally:
         db.close()
+
+
+# Phase B Task 6: answer-submission worker job. Thin shell over the shared
+# `draft_one_task` — single drafting code path for both callers (the
+# end-of-extract loop above + this answer-resolution path).
+#
+# Triggered by `POST /tasks/{task_id}/answers` via `enqueue_draft_task`. By
+# the time we get here, the API has persisted `task.answers` and flipped
+# `draft_state` → "answered" (Decision 7: persist BEFORE enqueue, so on
+# Redis/enqueue failure the data is safe and an admin can manually
+# re-enqueue this job).
+_VALID_DRAFT_TASK_STATES = {"answered", "drafted"}
+
+
+def draft_task(task_id):
+    db = SessionLocal()
+    try:
+        task = db.get(TaskDB, task_id)
+        if task is None:
+            logger.warning("draft_task: task not found, task=%s", task_id)
+            return
+
+        # Defensive state guard. Valid entry states:
+        #   - "answered": the normal first-time draft after answer submission.
+        #   - "drafted": a re-draft (e.g. user edited their answer and
+        #     re-triggered); draft_one_task overwrites cleanly.
+        # If we land here on "awaiting_answers" we are EITHER stuck from the
+        # Decision-7 failure mode (persist failed but enqueue fired) OR
+        # racing a stale retry from before the persist landed. Either way,
+        # drafting now would call the handler with the original first-call
+        # rules (answers=None route) and produce a junk draft — log and bail.
+        # Same goes for "extracted" — that path is owned by the end-of-extract
+        # loop, not by draft_task.
+        if task.draft_state not in _VALID_DRAFT_TASK_STATES:
+            logger.warning(
+                "draft_task skipped: task=%s state=%s — expected one of %s",
+                task_id, task.draft_state, sorted(_VALID_DRAFT_TASK_STATES),
+            )
+            return
+
+        context = build_context_for_task(task, db)
+        draft_one_task(task, context, db, answers=task.answers)
+        db.commit()
+        logger.info(
+            "draft_task complete: task=%s draft_state=%s handler=%s",
+            task_id, task.draft_state, task.handler,
+        )
+    finally:
+        db.close()

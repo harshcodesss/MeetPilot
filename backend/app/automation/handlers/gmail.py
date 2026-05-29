@@ -99,7 +99,12 @@ class GmailHandler(ActionHandler):
             deadline_raw=task.deadline_raw or "(none)",
             deadline_date=task.deadline_date or "(none)",
             transcript_excerpt=context.transcript_excerpt or "(none)",
-            question_rules=question_rules(ceiling, is_answer_mode),
+            question_rules=question_rules(
+                ceiling,
+                is_answer_mode,
+                prior_questions=task.questions or [],
+                answers=answers,
+            ),
         )
         result = draft_or_ask_with_schema(prompt, GmailDraft, ceiling)
         if isinstance(result, DraftResult):

@@ -97,6 +97,11 @@ class CalendarEventHandler(ActionHandler):
             deadline_raw=task.deadline_raw or "(none)",
             deadline_date=task.deadline_date or "(none)",
             transcript_excerpt=context.transcript_excerpt or "(none)",
-            question_rules=question_rules(ceiling, answers is not None),
+            question_rules=question_rules(
+                ceiling,
+                answers is not None,
+                prior_questions=task.questions or [],
+                answers=answers,
+            ),
         )
         return draft_or_ask_with_schema(prompt, CalendarEventDraft, ceiling)
