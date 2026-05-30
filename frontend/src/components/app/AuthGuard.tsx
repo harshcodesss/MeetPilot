@@ -4,29 +4,33 @@ import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
 import { Spinner } from "@/components/ui/Spinner";
+import { isAuthed } from "@/lib/auth";
 import { useAuthToken } from "@/lib/auth-hook";
 
 /**
  * Client-side auth gate for the `(app)` route group.
  *
- * `useAuthToken` is a useSyncExternalStore subscription against localStorage,
- * so the server snapshot is always `null` (no window) and the client snapshot
- * is the real bearer (or `null` if unauthenticated). React handles the SSR →
- * hydration handoff for us.
+ * Subtle hydration-timing rule baked in here: `useAuthToken` is a
+ * `useSyncExternalStore` subscription, which is REQUIRED to return the
+ * server snapshot (`null`) on the first client render to match the SSR
+ * pass. The real client snapshot (localStorage) only kicks in on the
+ * second render. If the effect trusted the captured `token` value during
+ * that first render, every hard-URL navigation to an (app) page would
+ * redirect authed users to /login before the client snapshot settled.
  *
- * No bearer → redirect to /login. The redirect is a pure side effect, so it
- * goes in useEffect. While the redirect is in flight (or during the
- * briefest spinner flash on first paint) we render the spinner.
+ * So inside the effect we read localStorage FRESH via `isAuthed()`. The
+ * captured `token` is only used as a dependency so the effect re-runs on
+ * cross-tab token changes (e.g. logout in another tab → bounce here too).
  *
- * The proper fix for the flash is httpOnly cookies + Next middleware, which
- * is a Postgres-era upgrade.
+ * The JSX still gates on `token === null` for the spinner; that's fine —
+ * the spinner is the correct UX while the client snapshot is settling.
  */
 export function AuthGuard({ children }: { children: ReactNode }) {
   const token = useAuthToken();
   const router = useRouter();
 
   useEffect(() => {
-    if (token === null) router.replace("/login");
+    if (!isAuthed()) router.replace("/login");
   }, [token, router]);
 
   if (token === null) {
