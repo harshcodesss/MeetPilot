@@ -1,9 +1,11 @@
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -61,6 +63,15 @@ app.include_router(dashboard_router)
 app.include_router(answers_router)
 app.include_router(tasks_router)
 app.include_router(me_router)
+
+# Static install assets — currently just `meetpilot-extension.zip`, served
+# under `/static/...` so the Dashboard's Extension Download card has a real
+# link target. Public (no auth gate) — the bearer-token system gates the
+# extension's API calls, not its download. `check_dir=False` so the API
+# still boots before the zip has been built at least once.
+_STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+_STATIC_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(_STATIC_DIR), check_dir=False), name="static")
 
 
 

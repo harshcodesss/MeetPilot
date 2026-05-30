@@ -26,6 +26,10 @@ dashboard/dist/
 # OS
 .DS_Store
 
+# build output — meetpilot-extension.zip is rebuilt by
+# backend/scripts/make_extension_zip.py before each demo
+backend/static/*.zip
+
 # project-internal — not pushed to the public repo
 .claude/
 docs/
