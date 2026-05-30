@@ -11,7 +11,6 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .api.answers import router as answers_router
 from .api.auth import router as auth_router
-from .api.dashboard import router as dashboard_router
 from .api.me import router as me_router
 from .api.tasks import router as tasks_router
 from .auth.dependencies import get_current_user
@@ -25,7 +24,6 @@ from .models import (
     SegmentsBatchRequest,
     SegmentsBatchResponse,
     SessionCompleteResponse,
-    SegmentOut,
     User,
 )
 
@@ -47,20 +45,19 @@ app.add_middleware(
     https_only=False,
 )
 
-# CORS — allow the Next.js frontend (3000) and the throwaway dev dashboard
-# during transition (Vite's 5173/5174/5175 port-fallback range, deleted in
-# Phase 10 Step D). Covers both localhost and 127.0.0.1 loopback names.
-# Still no "*"; still allow_credentials=False.
+# CORS — only the Next.js frontend at :3000 is allowed (both `localhost` and
+# `127.0.0.1` loopback names). The throwaway Vite dashboard was retired in
+# Phase 10 Step D; its 5173/5174/5175 entries went with it. Still no "*";
+# still allow_credentials=False.
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):(3000|5173|5174|5175)",
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):3000",
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=False,
 )
 
 app.include_router(auth_router)
-app.include_router(dashboard_router)
 app.include_router(answers_router)
 app.include_router(tasks_router)
 app.include_router(me_router)
@@ -73,8 +70,6 @@ app.include_router(me_router)
 _STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 _STATIC_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(_STATIC_DIR), check_dir=False), name="static")
-
-
 
 
 @app.post("/session/start", response_model=SessionStartResponse, status_code=201)
@@ -152,26 +147,3 @@ def complete_session(
         enqueue_extract(session_id)
 
     return SessionCompleteResponse(session_id=session_id, status=session.status)
-
-
-# ---------------------------------------------------------------------------
-# Debug read endpoint — not part of the production API contract; useful for
-# verifying E2E flow without touching SQLite directly. Still auth-gated +
-# ownership-checked so it can't leak a stranger's transcript.
-# ---------------------------------------------------------------------------
-
-@app.get("/session/{session_id}/segments", response_model=list[SegmentOut])
-def read_segments(
-    session_id: str,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    """Return stored segments ordered by (timestamp, seq). Used by the dashboard's transcript view and for ad-hoc debugging."""
-    _require_owned_session(session_id, user, db)
-    rows = (
-        db.query(SegmentDB)
-        .filter(SegmentDB.session_id == session_id)
-        .order_by(SegmentDB.timestamp, SegmentDB.seq)
-        .all()
-    )
-    return rows

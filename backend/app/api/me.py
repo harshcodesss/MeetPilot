@@ -1,17 +1,11 @@
-"""Frontend Phase 0 — `/me/*` reads.
+"""All `/me/*` reads.
 
-Collects every endpoint the frontend hits via `/me/...`:
-  - `/me/stats` (0.2) — four dashboard top-row counters
-  - `/me/tasks` (0.3) — cross-meeting task list
-  - `/me/tasks/deadlines` (0.4) — Calendar feed
-  - `/me/sessions/{id}` (0.6) — Meeting Detail page (session + tasks in one
-    round-trip)
-  - `/me/sessions/{id}/transcript` (0.6) — Meeting Detail transcript pane
-
-The `/me/sessions` LIST handler still lives in `dashboard.py` for now (Phase
-10 cleanup moves it here along with the rest of the ugly-dashboard cleanup);
-the list response was extended in 0.6 with `drafts_ready_count` +
-`awaiting_count` per row to power the badge on the Meetings list page.
+  - `/me/stats`                          — four dashboard top-row counters
+  - `/me/tasks`                          — cross-meeting task list
+  - `/me/tasks/deadlines`                — Calendar feed
+  - `/me/sessions`                       — Meetings list with badge counts
+  - `/me/sessions/{id}`                  — Meeting Detail (session + tasks)
+  - `/me/sessions/{id}/transcript`       — Meeting Detail transcript pane
 
 Every endpoint is auth-gated via `get_current_user`. Session-scoped endpoints
 additionally run `_require_owned_session` for the 401 → 404 → 403 ladder.
@@ -22,7 +16,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.tasks import TaskOut
@@ -244,6 +238,102 @@ def list_task_deadlines(
         .all()
     )
     return rows
+
+
+# ---------------------------------------------------------------------------
+# GET /me/sessions — Meetings list with badge counts (migrated from
+# dashboard.py in Phase 10 Step C alongside the alias-route deletion)
+# ---------------------------------------------------------------------------
+
+
+class SessionListItem(BaseModel):
+    session_id: str
+    started_at: datetime
+    status: str
+    title: str | None
+    segment_count: int
+    task_count: int
+    # The Meetings list cards show "drafts ready" / "awaiting answers" badges
+    # per session. Server-side counts here avoid an N+1 trip from the list
+    # page and mirror the Tasks board column definitions exactly
+    # (placement='main_list', is_done=false, draft_state=<state>).
+    drafts_ready_count: int
+    awaiting_count: int
+
+    model_config = {"from_attributes": True}
+
+
+@router.get("/me/sessions", response_model=list[SessionListItem])
+def list_sessions(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """List every session owned by the caller, newest first, with at-a-glance
+    counts. Used by `/dashboard` (top 5 slice) and `/meetings` (full list)."""
+    # Scalar subqueries avoid the cartesian-product double-counting risk
+    # that a single grouped outerjoin on two tables would introduce.
+    seg_sub = (
+        select(func.count())
+        .where(SegmentDB.session_id == SessionDB.session_id)
+        .correlate(SessionDB)
+        .scalar_subquery()
+    )
+    task_sub = (
+        select(func.count())
+        .where(
+            TaskDB.session_id == SessionDB.session_id,
+            TaskDB.placement != "dismissed",
+        )
+        .correlate(SessionDB)
+        .scalar_subquery()
+    )
+    drafts_ready_sub = (
+        select(func.count())
+        .where(
+            TaskDB.session_id == SessionDB.session_id,
+            TaskDB.draft_state == "drafted",
+            TaskDB.is_done.is_(False),
+            TaskDB.placement == "main_list",
+        )
+        .correlate(SessionDB)
+        .scalar_subquery()
+    )
+    awaiting_sub = (
+        select(func.count())
+        .where(
+            TaskDB.session_id == SessionDB.session_id,
+            TaskDB.draft_state == "awaiting_answers",
+            TaskDB.is_done.is_(False),
+            TaskDB.placement == "main_list",
+        )
+        .correlate(SessionDB)
+        .scalar_subquery()
+    )
+    rows = (
+        db.query(
+            SessionDB,
+            seg_sub.label("segment_count"),
+            task_sub.label("task_count"),
+            drafts_ready_sub.label("drafts_ready_count"),
+            awaiting_sub.label("awaiting_count"),
+        )
+        .filter(SessionDB.user_id == user.user_id)
+        .order_by(SessionDB.started_at.desc())
+        .all()
+    )
+    return [
+        SessionListItem(
+            session_id=row.SessionDB.session_id,
+            started_at=row.SessionDB.started_at,
+            status=row.SessionDB.status,
+            title=row.SessionDB.title,
+            segment_count=row.segment_count,
+            task_count=row.task_count,
+            drafts_ready_count=row.drafts_ready_count,
+            awaiting_count=row.awaiting_count,
+        )
+        for row in rows
+    ]
 
 
 # ---------------------------------------------------------------------------
