@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+ * MeetPilot design tokens — Tailwind v4 CSS-based theme.
+ *
+ * Single source for the visual system. Phase 11 (landing polish) and any
+ * future re-skin only touches this file, not every component.
+ *
+ * - `brand-*`     green logo family (emerald scale; brand-500 is the primary
+ *                 accent used on CTAs, badges, sidebar active states).
+ * - `surface-*`   neutral greys for cards / borders / muted text.
+ * - `shadow-soft` subtle elevation, no halo — matches the soft-shadow target.
+ * - `radius-xl`   default rounded-corner radius for cards and panels.
+ * ------------------------------------------------------------------------- */
+@theme {
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+  --color-brand-900: #064e3b;
+
+  --color-surface-50: #fafafa;
+  --color-surface-100: #f4f4f5;
+  --color-surface-200: #e4e4e7;
+  --color-surface-300: #d4d4d8;
+  --color-surface-500: #71717a;
+  --color-surface-700: #3f3f46;
+  --color-surface-900: #18181b;
+
+  --shadow-soft:
+    0 1px 2px 0 rgb(0 0 0 / 0.04),
+    0 4px 12px -2px rgb(0 0 0 / 0.06);
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+}
+
+html,
+body {
+  background: var(--color-surface-50);
+  color: var(--color-surface-900);
+  font-family: var(--font-sans);
+}
