@@ -27,6 +27,12 @@ class SessionListItem(BaseModel):
     title: str | None
     segment_count: int
     task_count: int
+    # Frontend Phase 0.6 — Meetings list cards show a "drafts ready" badge and an
+    # "awaiting answers" badge per session. Server-side counts here avoid an
+    # N+1 trip from the list page and match the Tasks board column definitions
+    # exactly (placement='main_list', is_done=false, draft_state=<state>).
+    drafts_ready_count: int
+    awaiting_count: int
 
     model_config = {"from_attributes": True}
 
@@ -77,7 +83,36 @@ def list_sessions(
     )
     task_sub = (
         select(func.count())
-        .where(TaskDB.session_id == SessionDB.session_id)
+        .where(
+            TaskDB.session_id == SessionDB.session_id,
+            TaskDB.placement != "dismissed",
+        )
+        .correlate(SessionDB)
+        .scalar_subquery()
+    )
+    # The two badge counters mirror the Tasks-board columns exactly: only
+    # tasks that would actually appear in "Ready to Use" / "Needs Your Input"
+    # count toward the badge. Same filter discipline as /me/stats (Phase 0.3
+    # review) — placement='main_list' AND is_done=false AND draft_state=<state>.
+    drafts_ready_sub = (
+        select(func.count())
+        .where(
+            TaskDB.session_id == SessionDB.session_id,
+            TaskDB.draft_state == "drafted",
+            TaskDB.is_done.is_(False),
+            TaskDB.placement == "main_list",
+        )
+        .correlate(SessionDB)
+        .scalar_subquery()
+    )
+    awaiting_sub = (
+        select(func.count())
+        .where(
+            TaskDB.session_id == SessionDB.session_id,
+            TaskDB.draft_state == "awaiting_answers",
+            TaskDB.is_done.is_(False),
+            TaskDB.placement == "main_list",
+        )
         .correlate(SessionDB)
         .scalar_subquery()
     )
@@ -86,6 +121,8 @@ def list_sessions(
             SessionDB,
             seg_sub.label("segment_count"),
             task_sub.label("task_count"),
+            drafts_ready_sub.label("drafts_ready_count"),
+            awaiting_sub.label("awaiting_count"),
         )
         .filter(SessionDB.user_id == user.user_id)
         .order_by(SessionDB.started_at.desc())
@@ -99,6 +136,8 @@ def list_sessions(
             title=row.SessionDB.title,
             segment_count=row.segment_count,
             task_count=row.task_count,
+            drafts_ready_count=row.drafts_ready_count,
+            awaiting_count=row.awaiting_count,
         )
         for row in rows
     ]

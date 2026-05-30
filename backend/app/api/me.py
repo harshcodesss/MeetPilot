@@ -1,13 +1,20 @@
-"""Frontend Phase 0 — `/me/*` non-session reads.
+"""Frontend Phase 0 — `/me/*` reads.
 
-This module collects every endpoint the frontend hits via `/me/...` that
-isn't session-scoped — currently `/me/stats` (0.2), and `/me/tasks` +
-`/me/tasks/deadlines` arrive in 0.3 / 0.4. The existing `/me/sessions`
-list still lives in `dashboard.py` for now; it migrates here in the Phase
-10 cleanup along with the rest of the ugly-dashboard cleanup.
+Collects every endpoint the frontend hits via `/me/...`:
+  - `/me/stats` (0.2) — four dashboard top-row counters
+  - `/me/tasks` (0.3) — cross-meeting task list
+  - `/me/tasks/deadlines` (0.4) — Calendar feed
+  - `/me/sessions/{id}` (0.6) — Meeting Detail page (session + tasks in one
+    round-trip)
+  - `/me/sessions/{id}/transcript` (0.6) — Meeting Detail transcript pane
 
-Every endpoint is auth-gated via `get_current_user`. No path here takes a
-task or session id directly; those go in `tasks.py` / `dashboard.py`.
+The `/me/sessions` LIST handler still lives in `dashboard.py` for now (Phase
+10 cleanup moves it here along with the rest of the ugly-dashboard cleanup);
+the list response was extended in 0.6 with `drafts_ready_count` +
+`awaiting_count` per row to power the badge on the Meetings list page.
+
+Every endpoint is auth-gated via `get_current_user`. Session-scoped endpoints
+additionally run `_require_owned_session` for the 401 → 404 → 403 ladder.
 """
 
 from datetime import date, datetime, timedelta, timezone
@@ -20,8 +27,9 @@ from sqlalchemy.orm import Session
 
 from app.api.tasks import TaskOut
 from app.auth.dependencies import get_current_user
+from app.auth.ownership import _require_owned_session
 from app.database import get_db
-from app.models import SessionDB, TaskDB, User
+from app.models import SegmentDB, SegmentOut, SessionDB, TaskDB, User
 
 router = APIRouter()
 
@@ -233,6 +241,129 @@ def list_task_deadlines(
             TaskDB.placement != "dismissed",
         )
         .order_by(TaskDB.deadline_date.asc())
+        .all()
+    )
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# GET /me/sessions/{id} — Meeting Detail page: session + tasks in one trip
+# ---------------------------------------------------------------------------
+
+
+class SessionEntry(BaseModel):
+    """Meeting metadata returned in the consolidated detail response.
+
+    Mirrors the shape of `dashboard.py::SessionDetail` so the frontend can
+    use a single Session type for both the list cell and the detail header.
+    `segment_count` is here so the detail header can show "N segments" without
+    a second trip. `drafts_ready_count` / `awaiting_count` aren't included
+    here because the same tasks list ships in the response — the page derives
+    them client-side and we avoid a server-vs-client divergence risk.
+    """
+
+    session_id: str
+    started_at: datetime
+    status: str
+    title: str | None
+    segment_count: int
+    task_count: int
+
+    model_config = {"from_attributes": True}
+
+
+class SessionAndTasksOut(BaseModel):
+    session: SessionEntry
+    tasks: list[TaskOut]
+
+
+@router.get("/me/sessions/{session_id}", response_model=SessionAndTasksOut)
+def get_session_detail(
+    session_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Meeting Detail's single round-trip — metadata + ordered tasks.
+
+    Replaces the old `GET /session/{id}` + `GET /session/{id}/tasks` two-call
+    pattern (those aliases stay alive until Phase 10 cleanup Step C). Tasks
+    are sorted by `created_at` ASC — the worker writes them in roughly the
+    order the LLM emitted them, which is the closest thing we have to "order
+    of mention in the meeting".
+
+    `placement='dismissed'` is filtered out — dismissed tasks are gone from
+    view everywhere by definition (Critical Read 3), so the Meeting Detail
+    page never sees them either.
+    """
+    session = _require_owned_session(session_id, user, db)
+
+    segment_count = (
+        db.query(func.count(SegmentDB.id))
+        .filter(SegmentDB.session_id == session_id)
+        .scalar()
+    )
+    task_count = (
+        db.query(func.count(TaskDB.task_id))
+        .filter(
+            TaskDB.session_id == session_id,
+            TaskDB.placement != "dismissed",
+        )
+        .scalar()
+    )
+
+    tasks = (
+        db.query(TaskDB)
+        .filter(
+            TaskDB.session_id == session_id,
+            TaskDB.placement != "dismissed",
+        )
+        .order_by(TaskDB.created_at.asc())
+        .all()
+    )
+
+    return SessionAndTasksOut(
+        session=SessionEntry(
+            session_id=session.session_id,
+            started_at=session.started_at,
+            status=session.status,
+            title=session.title,
+            segment_count=segment_count,
+            task_count=task_count,
+        ),
+        tasks=tasks,
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET /me/sessions/{id}/transcript — Meeting Detail's transcript pane
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/me/sessions/{session_id}/transcript",
+    response_model=list[SegmentOut],
+)
+def get_session_transcript(
+    session_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Speaker-labeled segments for one meeting, in display order.
+
+    Ordering is `(timestamp, seq)` — timestamp first (Meet's caption clock)
+    with `seq` as the tiebreaker for caption lines that finalized in the
+    same observer tick. Mirrors the ordering already used by the debug
+    `GET /session/{id}/segments` handler in main.py, which stays alive
+    during transition and is deleted in Phase 10 Step C.
+
+    The transcript pane scrolls; no pagination in v1 (Critical Read in the
+    plan — revisit only if a real long-meeting performance problem surfaces).
+    """
+    _require_owned_session(session_id, user, db)
+    rows = (
+        db.query(SegmentDB)
+        .filter(SegmentDB.session_id == session_id)
+        .order_by(SegmentDB.timestamp.asc(), SegmentDB.seq.asc())
         .all()
     )
     return rows
