@@ -10,7 +10,7 @@ Every endpoint is auth-gated via `get_current_user`. No path here takes a
 task or session id directly; those go in `tasks.py` / `dashboard.py`.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
@@ -177,4 +177,62 @@ def list_tasks(
         q = q.filter(TaskDB.is_done)
 
     rows = q.order_by(TaskDB.created_at.desc()).all()
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# GET /me/tasks/deadlines — Calendar page feed
+# ---------------------------------------------------------------------------
+
+
+class TaskDeadlineOut(BaseModel):
+    """Slim projection — Calendar page only renders dates + a card preview
+    on click; it never expands a full draft inline. Excludes the heavy
+    fields (questions, answers, draft) from TaskOut. `assignee` is added
+    over the plan spec so the date-cell card can show whose deadline."""
+
+    task_id: str
+    session_id: str
+    assignee: str
+    action: str
+    deadline_date: date
+    draft_state: str
+    handler: str | None
+    confidence: str
+    placement: str
+    is_done: bool
+
+    model_config = {"from_attributes": True}
+
+
+@router.get("/me/tasks/deadlines", response_model=list[TaskDeadlineOut])
+def list_task_deadlines(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Every owned, open, dated, non-dismissed task — sorted by deadline.
+
+    Filters (all ANDed):
+      - `deadline_date IS NOT NULL` — only tasks the LLM successfully resolved
+        a real date for. Unresolved deadlines (deadline_raw set, deadline_date
+        null) don't appear; Meeting Detail is where the user can chase those.
+      - `is_done = false` — completed tasks drop off the calendar.
+      - `placement != 'dismissed'` — dismissed tasks are gone from view.
+
+    Overdue tasks are INCLUDED (critical read 5: users want to see what they
+    missed, not have it hidden). Calendar UI distinguishes past/today/future
+    visually (e.g. red/green/neutral dots) using the same deadline_date.
+    """
+    rows = (
+        db.query(TaskDB)
+        .join(SessionDB, TaskDB.session_id == SessionDB.session_id)
+        .filter(
+            SessionDB.user_id == user.user_id,
+            TaskDB.deadline_date.isnot(None),
+            ~TaskDB.is_done,
+            TaskDB.placement != "dismissed",
+        )
+        .order_by(TaskDB.deadline_date.asc())
+        .all()
+    )
     return rows
