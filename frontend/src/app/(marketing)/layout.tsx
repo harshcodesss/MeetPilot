@@ -27,8 +27,16 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
       <main className="flex-1">{children}</main>
 
       <footer className="border-t border-line bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-6 text-sm text-ink-muted">
-          © {new Date().getFullYear()} MeetPilot
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-6 text-sm text-ink-muted">
+          <span>© {new Date().getFullYear()} MeetPilot</span>
+          <a
+            href="https://github.com/harshcodesss/MeetPilot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-ink transition-colors"
+          >
+            GitHub ↗
+          </a>
         </div>
       </footer>
     </div>
