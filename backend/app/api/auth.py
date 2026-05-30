@@ -3,13 +3,19 @@
 import secrets
 from datetime import datetime
 
+from authlib.integrations.base_client.errors import OAuthError
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
-from app.auth.google_oauth import AUTH_SUCCESS_REDIRECT_URL, GOOGLE_REDIRECT_URI, oauth
+from app.auth.google_oauth import (
+    AUTH_SUCCESS_REDIRECT_URL,
+    AUTH_SUCCESS_REDIRECT_URL_FRONTEND,
+    GOOGLE_REDIRECT_URI,
+    oauth,
+)
 from app.database import get_db
 from app.models import AuthSession, User
 
@@ -38,8 +44,36 @@ async def google_login(request: Request):
 @router.get("/auth/google/callback")
 async def google_callback(request: Request, db: Session = Depends(get_db)):
     """Exchange the code for tokens, upsert the user, mint an AuthSession, redirect
-    to the success URL with ?token=<opaque-bearer>."""
-    token_data = await oauth.google.authorize_access_token(request)
+    to the success URL with ?token=<opaque-bearer>.
+
+    Failure paths: OAuth-exchange failures (user denied consent on Google, state
+    CSRF mismatch, etc.) are caught and redirected to the frontend callback with
+    a short `?error=<code>` so the user sees the friendly "Sign-in failed" UI
+    instead of a stack trace. When only the dev-landing fallback is configured
+    (no frontend redirect URL), the exception bubbles as a 500 — the dev
+    landing has no error UI to land on. DB / handler-body failures still 500
+    intentionally; they're internal bugs, not Google's fault.
+    """
+    try:
+        token_data = await oauth.google.authorize_access_token(request)
+    except OAuthError as e:
+        # Google's documented denial code (`access_denied`), state-mismatch
+        # errors, etc. arrive here with `.error` populated. Pass it through to
+        # the frontend as-is so client-side mapping can surface friendly text.
+        if AUTH_SUCCESS_REDIRECT_URL_FRONTEND:
+            error_code = e.error or "sign_in_failed"
+            return RedirectResponse(
+                f"{AUTH_SUCCESS_REDIRECT_URL_FRONTEND}?error={error_code}"
+            )
+        raise
+    except Exception:
+        # Network blip to Google's token endpoint, malformed response, etc.
+        if AUTH_SUCCESS_REDIRECT_URL_FRONTEND:
+            return RedirectResponse(
+                f"{AUTH_SUCCESS_REDIRECT_URL_FRONTEND}?error=sign_in_failed"
+            )
+        raise
+
     userinfo = token_data.get("userinfo") or await oauth.google.userinfo(token=token_data)
 
     google_sub = userinfo["sub"]
@@ -81,7 +115,11 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
     db.add(AuthSession(token=bearer, user_id=user.user_id))
     db.commit()
 
-    return RedirectResponse(f"{AUTH_SUCCESS_REDIRECT_URL}?token={bearer}")
+    # Prefer the frontend callback (`/auth/callback?token=...`) when configured;
+    # fall back to the dev landing page so the extension's paste-token interim
+    # keeps working during the build. Phase 10 Step A removes the fallback.
+    redirect_base = AUTH_SUCCESS_REDIRECT_URL_FRONTEND or AUTH_SUCCESS_REDIRECT_URL
+    return RedirectResponse(f"{redirect_base}?token={bearer}")
 
 
 # DEV-ONLY — delete this endpoint when the frontend lands.

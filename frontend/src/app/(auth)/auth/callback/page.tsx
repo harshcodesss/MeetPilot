@@ -45,7 +45,7 @@ function CallbackInner() {
     );
   }
 
-  const errorMsg = error ?? "Sign-in did not complete. Please try again.";
+  const errorMsg = friendlyError(error);
   return (
     <Card className="text-center">
       <h1 className="text-xl font-semibold text-surface-900">Sign-in failed</h1>
@@ -58,6 +58,25 @@ function CallbackInner() {
       </Link>
     </Card>
   );
+}
+
+/**
+ * Maps backend error codes to user-facing copy. The backend sends short
+ * codes (e.g. `access_denied`, `sign_in_failed`); known ones get friendly
+ * text, anything unknown falls back to a generic message — never echo a
+ * raw code to the user.
+ */
+function friendlyError(code: string | null): string {
+  switch (code) {
+    case "access_denied":
+      return "You declined to grant access. Sign in again to continue.";
+    case "sign_in_failed":
+      return "Sign-in didn’t complete. Please try again.";
+    case null:
+      return "Sign-in didn’t complete. Please try again.";
+    default:
+      return "Sign-in didn’t complete. Please try again.";
+  }
 }
 
 export default function CallbackPage() {

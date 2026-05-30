@@ -17,7 +17,17 @@ load_dotenv()
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI")
+# Legacy dev redirect — points at /auth/dev/landing during the build. Deleted
+# in Phase 10 Step A when the frontend is the only sign-in path.
 AUTH_SUCCESS_REDIRECT_URL = os.environ.get("AUTH_SUCCESS_REDIRECT_URL")
+# Frontend Phase 2 — preferred when set. Lets the OAuth callback hand the
+# bearer to the React app at `/auth/callback?token=...` instead of the dev
+# landing page. Optional during build (falls back to AUTH_SUCCESS_REDIRECT_URL
+# so the extension's paste-token flow keeps working). Phase 10 Step A makes
+# this the unconditional target and removes the fallback.
+AUTH_SUCCESS_REDIRECT_URL_FRONTEND = os.environ.get(
+    "AUTH_SUCCESS_REDIRECT_URL_FRONTEND"
+)
 
 _missing = [
     name for name, value in [
