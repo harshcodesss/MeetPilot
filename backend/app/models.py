@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Column, String, Integer, Date, DateTime, ForeignKey, UniqueConstraint, JSON, func
+from sqlalchemy import Boolean, Column, String, Integer, Date, DateTime, ForeignKey, UniqueConstraint, JSON, func
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel
 
@@ -96,6 +96,10 @@ class TaskDB(Base):
     questions = Column(JSON, nullable=True)
     answers = Column(JSON, nullable=True)
     draft = Column(JSON, nullable=True)
+    # Frontend Phase 0.1 — completion flag powering the Done column on Tasks
+    # board, dimmed-and-sunk state on Meeting Detail, /me/stats "open" counts.
+    # NOT a dismissal flag — dismissal is `placement='dismissed'` (Phase 0.3).
+    is_done = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
