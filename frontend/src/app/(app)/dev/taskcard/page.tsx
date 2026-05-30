@@ -1,8 +1,9 @@
 import { ConfidenceBadge } from "@/components/app/ConfidenceBadge";
+import { DraftView } from "@/components/app/DraftView";
 import { MeetingCard } from "@/components/app/MeetingCard";
 import { StatCard } from "@/components/app/StatCard";
 import { Card } from "@/components/ui/Card";
-import { mockSessions } from "@/lib/dev-mocks";
+import { mockHandlerTasks, mockSessions } from "@/lib/dev-mocks";
 
 /**
  * Phase 3 dev-only mount, lives at `/dev/taskcard`. Renders every Phase 3
@@ -57,11 +58,11 @@ export default function TaskCardDevPage() {
       </Section>
 
       <Section title="DraftView">
-        <Card variant="flat">
-          <p className="text-sm text-ink-muted">
-            Phase 3.1 — coming next: one DraftView per handler.
-          </p>
-        </Card>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {mockHandlerTasks.map((t) => (
+            <DraftView key={t.task_id} task={t} />
+          ))}
+        </div>
       </Section>
 
       <Section title="AnswerForm">

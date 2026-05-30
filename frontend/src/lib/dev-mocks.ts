@@ -221,3 +221,90 @@ export const mockTaskSuggested: Task = {
   placement: "suggested",
   confidence: "low",
 };
+
+// ---------------------------------------------------------------------------
+// Per-handler drafted tasks — one Task each so the Phase 3.1 dev mount can
+// render every DraftView shape side-by-side. Reuses the per-handler mock
+// drafts above; each wraps the matching draft + handler in a full Task shell.
+// ---------------------------------------------------------------------------
+
+function draftedTaskWith<H extends Task["handler"]>(
+  task_id: string,
+  handler: H,
+  draft: Task["draft"],
+  action: string,
+): Task {
+  return {
+    ...baseTask,
+    task_id,
+    action,
+    draft_state: "drafted",
+    handler,
+    questions: null,
+    answers: null,
+    draft,
+    is_done: false,
+    placement: "main_list",
+    confidence: "high",
+  };
+}
+
+export const mockTaskGmail = draftedTaskWith(
+  "task-gmail",
+  "gmail",
+  mockGmailDraft,
+  "Send the Q3 report to leadership by Friday",
+);
+export const mockTaskCalendarEvent = draftedTaskWith(
+  "task-cal-event",
+  "calendar_event",
+  mockCalendarEventDraft,
+  "Schedule the Q3 planning followup with Aman and Priya",
+);
+export const mockTaskCalendarDeadline = draftedTaskWith(
+  "task-cal-deadline",
+  "calendar_deadline",
+  mockCalendarDeadlineDraft,
+  "Block out the Q3 report due date on the calendar",
+);
+export const mockTaskJira = draftedTaskWith(
+  "task-jira",
+  "jira",
+  mockJiraDraft,
+  "File a ticket about the /me/sessions latency spike",
+);
+export const mockTaskSlack = draftedTaskWith(
+  "task-slack",
+  "slack",
+  mockSlackDraft,
+  "Post the partner-research timing in #growth",
+);
+export const mockTaskTodo = draftedTaskWith(
+  "task-todo",
+  "todo",
+  mockTodoDraft,
+  "Read the new pricing brief before the leadership review",
+);
+export const mockTaskNotion = draftedTaskWith(
+  "task-notion",
+  "notion",
+  mockNotionDraft,
+  "Draft the Q3 retro outline in Notion",
+);
+export const mockTaskAsana = draftedTaskWith(
+  "task-asana",
+  "asana",
+  mockAsanaDraft,
+  "Assign Q3 talking-points prep to Priya",
+);
+
+export const mockHandlerTasks = [
+  mockTaskGmail,
+  mockTaskCalendarEvent,
+  mockTaskCalendarDeadline,
+  mockTaskJira,
+  mockTaskSlack,
+  mockTaskTodo,
+  mockTaskNotion,
+  mockTaskAsana,
+] as const;
