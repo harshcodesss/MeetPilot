@@ -10,6 +10,8 @@ import {
   mockTaskAwaiting,
 } from "@/lib/dev-mocks";
 
+import { TaskCardDev } from "./TaskCardDev";
+
 /**
  * Phase 3 dev-only mount, lives at `/dev/taskcard`. Renders every Phase 3
  * component permutation side-by-side against mock data so we iterate the
@@ -83,11 +85,7 @@ export default function TaskCardDevPage() {
       </Section>
 
       <Section title="TaskCard">
-        <Card variant="flat">
-          <p className="text-sm text-ink-muted">
-            Phase 3.3 — the assembly: 6+ body shapes side-by-side.
-          </p>
-        </Card>
+        <TaskCardDev />
       </Section>
     </div>
   );
