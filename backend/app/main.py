@@ -10,6 +10,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from .api.answers import router as answers_router
 from .api.auth import router as auth_router
 from .api.dashboard import router as dashboard_router
+from .api.me import router as me_router
 from .api.tasks import router as tasks_router
 from .auth.dependencies import get_current_user
 from .auth.ownership import _require_owned_session
@@ -59,6 +60,7 @@ app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(answers_router)
 app.include_router(tasks_router)
+app.include_router(me_router)
 
 
 
