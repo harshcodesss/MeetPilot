@@ -6,9 +6,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { clearToken } from "@/lib/auth";
 
 /**
- * Phase 1 placeholder sidebar — the brief locks the nav groups but the real
- * polish (icons, collapsed state, active-section grouping) lands in Phase 3
- * alongside TaskCard. For now this is a flat `<aside>` with the locked nav.
+ * Phase 1 placeholder sidebar. Real polish (icons, collapsed state,
+ * active-section grouping) lands in Phase 3 alongside TaskCard.
+ *
+ * Active state uses primary-tint background + primary text — the brief's
+ * "active nav" rule. Hover uses surface (#F8F9FA), neutral gray, so the
+ * tinted blue stays unique to the active item.
  */
 const TOP_NAV = [
   { href: "/dashboard", label: "Dashboard" },
@@ -40,10 +43,10 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col border-r border-surface-200 bg-white px-4 py-6">
+    <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-surface px-4 py-6">
       <Link
         href="/dashboard"
-        className="mb-8 px-2 text-lg font-semibold text-brand-600"
+        className="mb-8 px-2 text-lg font-semibold text-primary"
       >
         MeetPilot
       </Link>
@@ -55,8 +58,8 @@ export function Sidebar() {
             href={item.href}
             className={`rounded-xl px-3 py-2 text-sm transition-colors ${
               isActive(pathname, item.href)
-                ? "bg-brand-50 font-medium text-brand-700"
-                : "text-surface-700 hover:bg-surface-100"
+                ? "bg-primary-tint font-medium text-primary"
+                : "text-ink-muted hover:bg-white"
             }`}
           >
             {item.label}
@@ -64,15 +67,15 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <nav className="mt-auto flex flex-col gap-1 border-t border-surface-200 pt-4">
+      <nav className="mt-auto flex flex-col gap-1 border-t border-line pt-4">
         {BOTTOM_NAV.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             className={`rounded-xl px-3 py-2 text-sm transition-colors ${
               isActive(pathname, item.href)
-                ? "bg-brand-50 font-medium text-brand-700"
-                : "text-surface-700 hover:bg-surface-100"
+                ? "bg-primary-tint font-medium text-primary"
+                : "text-ink-muted hover:bg-white"
             }`}
           >
             {item.label}
@@ -80,7 +83,7 @@ export function Sidebar() {
         ))}
         <button
           onClick={onLogout}
-          className="rounded-xl px-3 py-2 text-left text-sm text-surface-700 hover:bg-surface-100 transition-colors"
+          className="rounded-xl px-3 py-2 text-left text-sm text-ink-muted hover:bg-white transition-colors"
         >
           Log out
         </button>

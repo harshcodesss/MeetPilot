@@ -1,6 +1,16 @@
 import type { ReactNode } from "react";
 
-type Tone = "neutral" | "brand" | "warn" | "danger";
+/**
+ * Tones map to the brief's strict-semantic system:
+ *   - neutral: gray chrome — counts, categories, no severity.
+ *   - info:    blue (primary-tint) — categories like "Suggested" placement
+ *              (NOT severity; deliberately not green/yellow/red).
+ *   - success: green — confidence high / "ready" status. Reserved.
+ *   - warn:    yellow — confidence moderate / attention. Reserved. Uses the
+ *              AA-safe darker `yellow-text` color on the lighter `yellow-bg`.
+ *   - danger:  red — confidence low / urgent. Reserved.
+ */
+type Tone = "neutral" | "info" | "success" | "warn" | "danger";
 
 interface BadgeProps {
   children: ReactNode;
@@ -9,10 +19,11 @@ interface BadgeProps {
 }
 
 const TONE_STYLES: Record<Tone, string> = {
-  neutral: "bg-surface-100 text-surface-700 border border-surface-200",
-  brand: "bg-brand-50 text-brand-700 border border-brand-100",
-  warn: "bg-yellow-50 text-yellow-800 border border-yellow-200",
-  danger: "bg-red-50 text-red-700 border border-red-200",
+  neutral: "bg-surface text-ink-muted border border-line",
+  info: "bg-primary-tint text-primary border border-primary-tint",
+  success: "bg-green-bg text-green border border-green-bg",
+  warn: "bg-yellow-bg text-yellow-text border border-yellow-bg",
+  danger: "bg-red-bg text-red border border-red-bg",
 };
 
 export function Badge({ children, tone = "neutral", className = "" }: BadgeProps) {

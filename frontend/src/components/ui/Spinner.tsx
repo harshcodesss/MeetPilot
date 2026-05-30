@@ -9,7 +9,7 @@ export function Spinner({ size = "md", className = "" }: SpinnerProps) {
     <span
       role="status"
       aria-label="Loading"
-      className={`inline-block ${dim} animate-spin rounded-full border-2 border-surface-200 border-t-brand-500 ${className}`}
+      className={`inline-block ${dim} animate-spin rounded-full border-2 border-line border-t-primary ${className}`}
     />
   );
 }

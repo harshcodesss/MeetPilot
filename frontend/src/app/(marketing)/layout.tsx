@@ -9,15 +9,15 @@ import type { ReactNode } from "react";
  */
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b border-surface-200 bg-white">
+    <div className="flex min-h-screen flex-col bg-white">
+      <header className="border-b border-line bg-white">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="text-lg font-semibold text-brand-600">
+          <Link href="/" className="text-lg font-semibold text-primary">
             MeetPilot
           </Link>
           <Link
             href="/login"
-            className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-soft hover:bg-brand-600 transition-colors"
+            className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-soft hover:bg-primary-hover transition-colors"
           >
             Sign in
           </Link>
@@ -26,8 +26,8 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
 
       <main className="flex-1">{children}</main>
 
-      <footer className="border-t border-surface-200 bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-6 text-sm text-surface-500">
+      <footer className="border-t border-line bg-white">
+        <div className="mx-auto max-w-6xl px-6 py-6 text-sm text-ink-muted">
           © {new Date().getFullYear()} MeetPilot
         </div>
       </footer>

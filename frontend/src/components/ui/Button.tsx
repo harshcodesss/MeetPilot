@@ -9,15 +9,24 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
+/**
+ * Variants map to the brief's semantics:
+ *   - primary: brand action — Google Blue.
+ *   - secondary: chrome neutral, line-bordered white.
+ *   - ghost: no chrome, hover tint only.
+ *   - danger: red — legitimate "urgent/danger" semantic use (sign-out
+ *     confirmation, destructive delete). Reserved; do NOT use as a generic
+ *     decorative red.
+ */
 const VARIANT_STYLES: Record<Variant, string> = {
   primary:
-    "bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700 disabled:bg-brand-300",
+    "bg-primary text-white hover:bg-primary-hover active:bg-primary-hover disabled:opacity-60",
   secondary:
-    "bg-white text-surface-900 border border-surface-200 hover:bg-surface-50 disabled:opacity-60",
+    "bg-white text-ink border border-line hover:bg-surface disabled:opacity-60",
   ghost:
-    "bg-transparent text-surface-700 hover:bg-surface-100 disabled:opacity-60",
+    "bg-transparent text-ink-muted hover:bg-surface disabled:opacity-60",
   danger:
-    "bg-white text-red-600 border border-red-200 hover:bg-red-50 disabled:opacity-60",
+    "bg-white text-red border border-red-bg hover:bg-red-bg disabled:opacity-60",
 };
 
 const SIZE_STYLES: Record<Size, string> = {

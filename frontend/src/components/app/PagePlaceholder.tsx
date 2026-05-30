@@ -14,12 +14,10 @@ interface PagePlaceholderProps {
 export function PagePlaceholder({ name, arrivesIn }: PagePlaceholderProps) {
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-3xl font-semibold tracking-tight text-surface-900">
-        {name}
-      </h1>
+      <h1 className="text-3xl font-semibold tracking-tight text-ink">{name}</h1>
       <Card className="mt-6">
-        <p className="text-surface-500">
-          <span className="font-medium text-surface-900">Coming soon.</span>{" "}
+        <p className="text-ink-muted">
+          <span className="font-medium text-ink">Coming soon.</span>{" "}
           Implemented in {arrivesIn}.
         </p>
       </Card>

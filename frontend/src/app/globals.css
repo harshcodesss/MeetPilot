@@ -1,36 +1,51 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
- * MeetPilot design tokens — Tailwind v4 CSS-based theme.
+ * MeetPilot design tokens — Google Meet-inspired palette per
+ * docs/Frontend_Build_Brief.txt (the COLOR PALETTE section is authoritative).
  *
- * Single source for the visual system. Phase 11 (landing polish) and any
- * future re-skin only touches this file, not every component.
+ * Hard rules baked into these tokens:
+ *   - Primary / brand = Google Blue (#1A73E8). Buttons, links, active nav,
+ *     focus rings, status indicators. The "bright Google feel" comes from
+ *     blue — the one Google color we DON'T use semantically.
+ *   - Green / yellow / red are RESERVED for the confidence + status system.
+ *     They carry meaning (high / moderate / low; success / attention / urgent).
+ *     Never use them for decorative or button colors — that would collide
+ *     with their semantic.
+ *   - Yellow text on white fails WCAG AA. `--color-yellow` (#FBBC04) is for
+ *     fills/dots only; `--color-yellow-text` (#B06000) is the AA-safe
+ *     darker shade for any yellow TEXT on white.
  *
- * - `brand-*`     green logo family (emerald scale; brand-500 is the primary
- *                 accent used on CTAs, badges, sidebar active states).
- * - `surface-*`   neutral greys for cards / borders / muted text.
- * - `shadow-soft` subtle elevation, no halo — matches the soft-shadow target.
- * - `radius-xl`   default rounded-corner radius for cards and panels.
+ * Generated Tailwind utilities (sample):
+ *   bg-primary / hover:bg-primary-hover / bg-primary-tint / text-primary
+ *   bg-surface / border-line / text-ink / text-ink-muted / text-ink-faint
+ *   text-green / bg-green-bg / text-yellow-text / bg-yellow-bg / text-red / bg-red-bg
+ *   bg-done-bg
  * ------------------------------------------------------------------------- */
 @theme {
-  --color-brand-50: #ecfdf5;
-  --color-brand-100: #d1fae5;
-  --color-brand-200: #a7f3d0;
-  --color-brand-300: #6ee7b7;
-  --color-brand-400: #34d399;
-  --color-brand-500: #10b981;
-  --color-brand-600: #059669;
-  --color-brand-700: #047857;
-  --color-brand-800: #065f46;
-  --color-brand-900: #064e3b;
+  /* Neutrals — page background stays pure #FFFFFF (Tailwind's `bg-white`). */
+  --color-surface: #f8f9fa;
+  --color-line: #dadce0;
+  --color-ink: #202124;
+  --color-ink-muted: #5f6368;
+  --color-ink-faint: #80868b;
 
-  --color-surface-50: #fafafa;
-  --color-surface-100: #f4f4f5;
-  --color-surface-200: #e4e4e7;
-  --color-surface-300: #d4d4d8;
-  --color-surface-500: #71717a;
-  --color-surface-700: #3f3f46;
-  --color-surface-900: #18181b;
+  /* Brand = Google Blue */
+  --color-primary: #1a73e8;
+  --color-primary-hover: #1765cc;
+  --color-primary-tint: #e8f0fe;
+
+  /* Semantic — confidence + status only */
+  --color-green: #34a853;
+  --color-green-bg: #e6f4ea;
+  --color-yellow: #fbbc04;
+  --color-yellow-text: #b06000;
+  --color-yellow-bg: #fef7e0;
+  --color-red: #ea4335;
+  --color-red-bg: #fce8e6;
+
+  /* Tasks board "Done" column tint — gray, intentionally de-emphasized. */
+  --color-done-bg: #f1f3f7;
 
   --shadow-soft:
     0 1px 2px 0 rgb(0 0 0 / 0.04),
@@ -46,7 +61,7 @@
 
 html,
 body {
-  background: var(--color-surface-50);
-  color: var(--color-surface-900);
+  background: #ffffff;
+  color: var(--color-ink);
   font-family: var(--font-sans);
 }

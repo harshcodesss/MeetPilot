@@ -40,7 +40,7 @@ function CallbackInner() {
     return (
       <Card className="text-center">
         <Spinner />
-        <p className="mt-4 text-sm text-surface-500">Completing sign-in…</p>
+        <p className="mt-4 text-sm text-ink-muted">Completing sign-in…</p>
       </Card>
     );
   }
@@ -48,11 +48,11 @@ function CallbackInner() {
   const errorMsg = friendlyError(error);
   return (
     <Card className="text-center">
-      <h1 className="text-xl font-semibold text-surface-900">Sign-in failed</h1>
-      <p className="mt-2 text-sm text-surface-500">{errorMsg}</p>
+      <h1 className="text-xl font-semibold text-ink">Sign-in failed</h1>
+      <p className="mt-2 text-sm text-ink-muted">{errorMsg}</p>
       <Link
         href="/login"
-        className="mt-6 inline-block rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 transition-colors"
+        className="mt-6 inline-block rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover transition-colors"
       >
         Try again
       </Link>
@@ -85,7 +85,7 @@ export default function CallbackPage() {
       fallback={
         <Card className="text-center">
           <Spinner />
-          <p className="mt-4 text-sm text-surface-500">Loading…</p>
+          <p className="mt-4 text-sm text-ink-muted">Loading…</p>
         </Card>
       }
     >

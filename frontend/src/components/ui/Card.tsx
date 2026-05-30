@@ -12,12 +12,14 @@ export function Card({
   className = "",
   ...rest
 }: CardProps) {
-  const elevation =
-    variant === "raised" ? "shadow-soft bg-white" : "bg-surface-50";
+  // Raised cards sit on the white page background — surface (#F8F9FA) is the
+  // muted alternative used for nested/flat groupings inside another Card.
+  const surface =
+    variant === "raised" ? "bg-white shadow-soft" : "bg-surface";
   return (
     <div
       {...rest}
-      className={`rounded-xl border border-surface-200 p-6 ${elevation} ${className}`}
+      className={`rounded-xl border border-line p-6 ${surface} ${className}`}
     >
       {children}
     </div>
