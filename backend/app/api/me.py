@@ -11,12 +11,14 @@ task or session id directly; those go in `tasks.py` / `dashboard.py`.
 """
 
 from datetime import datetime, timedelta, timezone
+from typing import Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.api.tasks import TaskOut
 from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models import SessionDB, TaskDB, User
@@ -74,10 +76,13 @@ def get_stats(
         .scalar()
     )
 
-    # `drafts_ready` and `action_required` are the "open work" counters —
-    # filter out completed (is_done) AND dismissed (placement='dismissed',
-    # introduced in Phase 0.3). The dismissed filter is harmless until
-    # then; locking it now means we don't have to remember to revisit.
+    # `drafts_ready` and `action_required` are the "open work" counters that
+    # mirror the Tasks board's "Ready to Use" and "Needs Your Input" columns
+    # exactly: `placement='main_list'` (excludes `suggested` AND `dismissed`)
+    # AND `is_done=false`. Stricter than just `placement != 'dismissed'`
+    # because the worker drafts suggested tasks too — counting them in the
+    # stat without surfacing them in the column would confuse the user
+    # ("stat says 1 ready, column is empty").
     drafts_ready = (
         db.query(func.count(TaskDB.task_id))
         .join(SessionDB, TaskDB.session_id == SessionDB.session_id)
@@ -85,7 +90,7 @@ def get_stats(
             SessionDB.user_id == user.user_id,
             TaskDB.draft_state == "drafted",
             ~TaskDB.is_done,
-            TaskDB.placement != "dismissed",
+            TaskDB.placement == "main_list",
         )
         .scalar()
     )
@@ -97,7 +102,7 @@ def get_stats(
             SessionDB.user_id == user.user_id,
             TaskDB.draft_state == "awaiting_answers",
             ~TaskDB.is_done,
-            TaskDB.placement != "dismissed",
+            TaskDB.placement == "main_list",
         )
         .scalar()
     )
@@ -109,3 +114,67 @@ def get_stats(
         action_required=action_required,
         window_days=STATS_WINDOW_DAYS,
     )
+
+
+# ---------------------------------------------------------------------------
+# GET /me/tasks — cross-meeting task list for the Tasks board
+# ---------------------------------------------------------------------------
+
+# Bucket precedence (mirrored client-side in frontend/src/lib/buckets.ts):
+#   placement='dismissed' → filtered out everywhere (handled at API boundary)
+#   is_done=true          → Done (wins over everything else)
+#   placement='suggested' → Suggestions (wins over draft state)
+#   draft_state=...       → Ready-to-Use / Needs-Your-Input (main_list only)
+BucketName = Literal["drafted", "awaiting", "suggested", "done"]
+
+
+@router.get("/me/tasks", response_model=list[TaskOut])
+def list_tasks(
+    bucket: BucketName | None = Query(default=None),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Every task the caller owns, newest first, with full draft payload.
+
+    The full `draft` JSON is included so the Tasks board can render expanded
+    cards without a second fetch (critical read 4 — revisit only if a real
+    payload-size problem surfaces).
+
+    The frontend buckets client-side in v1; the `?bucket=` query param is the
+    server-side counterpart, kept consistent with the client-side buckets so
+    future infinite-scroll / per-bucket pagination doesn't need a new endpoint.
+
+    `placement='dismissed'` is always filtered (no opt-in flag to include
+    them) — dismissal is "gone from view" by definition.
+    """
+    q = (
+        db.query(TaskDB)
+        .join(SessionDB, TaskDB.session_id == SessionDB.session_id)
+        .filter(
+            SessionDB.user_id == user.user_id,
+            TaskDB.placement != "dismissed",
+        )
+    )
+
+    if bucket == "drafted":
+        q = q.filter(
+            TaskDB.draft_state == "drafted",
+            ~TaskDB.is_done,
+            TaskDB.placement == "main_list",
+        )
+    elif bucket == "awaiting":
+        q = q.filter(
+            TaskDB.draft_state == "awaiting_answers",
+            ~TaskDB.is_done,
+            TaskDB.placement == "main_list",
+        )
+    elif bucket == "suggested":
+        q = q.filter(
+            TaskDB.placement == "suggested",
+            ~TaskDB.is_done,
+        )
+    elif bucket == "done":
+        q = q.filter(TaskDB.is_done)
+
+    rows = q.order_by(TaskDB.created_at.desc()).all()
+    return rows

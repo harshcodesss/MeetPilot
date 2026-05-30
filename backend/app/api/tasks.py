@@ -11,7 +11,7 @@ the task via `_require_owned_task` (401 → 404 → 403 ladder).
 """
 
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -77,6 +77,45 @@ def set_task_done(
     """
     task = _require_owned_task(task_id, user, db)
     task.is_done = body.is_done
+    db.commit()
+    db.refresh(task)
+    return task
+
+
+# ---------------------------------------------------------------------------
+# PATCH /tasks/{task_id}/placement — promote / demote / dismiss
+# ---------------------------------------------------------------------------
+
+# Distinct from extraction/schemas.py::Placement (LLM-output enum, kept tight
+# at main_list|suggested so structured-output mode never exposes 'dismissed'
+# to Gemini). This literal is the USER mutation surface; the DB column is a
+# String and accepts any of the three values.
+PlacementUserValue = Literal["main_list", "suggested", "dismissed"]
+
+
+class PlacementIn(BaseModel):
+    placement: PlacementUserValue
+
+
+@router.patch("/tasks/{task_id}/placement", response_model=TaskOut)
+def set_task_placement(
+    task_id: str,
+    body: PlacementIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Move a task between placements.
+
+    Frontend uses three flows:
+      - Promote a suggested task → 'main_list'
+      - Demote back to 'suggested' (mostly hypothetical, supported for symmetry)
+      - Dismiss a suggested task → 'dismissed' (rejected, filtered from all
+        /me/* reads at the API boundary; never appears in any column).
+
+    Idempotent on value. Invalid placement → 422 (Pydantic Literal).
+    """
+    task = _require_owned_task(task_id, user, db)
+    task.placement = body.placement
     db.commit()
     db.refresh(task)
     return task
