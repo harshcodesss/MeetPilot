@@ -102,6 +102,23 @@ export default function MeetingDetailPage() {
     setTasks((prev) => prev.filter((t) => t.task_id !== taskId));
   }
 
+  // Deep-link scroll target: Calendar (Phase 9) and other surfaces link here
+  // with `#task-<task_id>`. After tasks render, scroll to the anchored card.
+  // The dependency on tasks.length ensures we wait until the DOM has the
+  // `<div id="task-...">` wrappers before searching.
+  useEffect(() => {
+    if (pageState.status !== "loaded") return;
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    if (!hash) return;
+    // task IDs are UUIDs (hex + hyphens) so we can use the hash directly
+    // as a CSS selector with no escaping needed.
+    const target = document.querySelector(hash);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [pageState.status, tasks.length]);
+
   if (pageState.status === "loading") {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -219,12 +236,20 @@ function TasksSection({
       </h2>
       <div className="space-y-3">
         {tasks.map((t) => (
-          <TaskCard
+          // Deep-link target — Calendar's task rows link here with
+          // `/meetings/<sid>#task-<tid>`. `scroll-mt-8` adds breathing
+          // room above the anchored card after scrollIntoView lands.
+          <div
             key={t.task_id}
-            task={t}
-            onTaskUpdated={onTaskUpdated}
-            onTaskDismissed={onTaskDismissed}
-          />
+            id={`task-${t.task_id}`}
+            className="scroll-mt-8"
+          >
+            <TaskCard
+              task={t}
+              onTaskUpdated={onTaskUpdated}
+              onTaskDismissed={onTaskDismissed}
+            />
+          </div>
         ))}
       </div>
     </section>
