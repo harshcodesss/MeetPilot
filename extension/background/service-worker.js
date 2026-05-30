@@ -118,6 +118,38 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   return true; // keep channel open for async sendResponse
 });
 
+// ============================================================================
+// External message router — accepts the bearer handoff from the web app.
+// The frontend's ExtensionConnect calls chrome.runtime.sendMessage(EXTENSION_ID,
+// { type: 'TOKEN', token }) on click. Only origins listed in the manifest's
+// externally_connectable.matches can reach us, so the source is already
+// pinned to http://localhost:3000/* — no need to re-verify sender.origin here.
+//
+// Token shape: 32-byte hex (64 lowercase chars). Anything else is silently
+// rejected — we'd rather fail-closed than write garbage into storage.
+// ============================================================================
+chrome.runtime.onMessageExternal.addListener((msg, _sender, sendResponse) => {
+  handleExternalMessage(msg)
+    .then(sendResponse)
+    .catch(err => {
+      console.error('[MeetPilot SW] external message failed:', err);
+      sendResponse({ ok: false, error: err.message });
+    });
+  return true; // keep channel open for async sendResponse
+});
+
+async function handleExternalMessage(msg) {
+  if (msg?.type !== 'TOKEN') {
+    return { ok: false, error: `unknown external message type: ${msg?.type}` };
+  }
+  if (typeof msg.token !== 'string' || !/^[0-9a-f]{64}$/.test(msg.token)) {
+    return { ok: false, error: 'invalid token format' };
+  }
+  await chrome.storage.local.set({ authToken: msg.token });
+  console.log('[MeetPilot SW] auth token received from web app');
+  return { ok: true };
+}
+
 async function handleMessage(msg) {
   // ------------------------------------------------------------------
   // START_CAPTURE — call /session/start, initialise state
