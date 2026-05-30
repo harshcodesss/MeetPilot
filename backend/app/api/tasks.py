@@ -3,8 +3,8 @@
 Separate from `answers.py` (POST-only, narrowly scoped to the clarification
 loop) and from `dashboard.py` (session-scoped reads under `/me/sessions` and
 `/session/...`). This is the place for everything that operates on a single
-task by id: `PATCH /tasks/{id}/done`, future `PATCH /tasks/{id}/placement`
-(Phase 0.3), `GET /tasks/{id}` (Phase 0.5).
+task by id: `PATCH /tasks/{id}/done`, `PATCH /tasks/{id}/placement`,
+`GET /tasks/{id}`.
 
 Auth is uniform: every endpoint depends on `get_current_user` and resolves
 the task via `_require_owned_task` (401 → 404 → 403 ladder).
@@ -119,3 +119,26 @@ def set_task_placement(
     db.commit()
     db.refresh(task)
     return task
+
+
+# ---------------------------------------------------------------------------
+# GET /tasks/{task_id} — single-task read (poll target for the answer flow)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/tasks/{task_id}", response_model=TaskOut)
+def get_task(
+    task_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Single task by id, owner-scoped. Same `TaskOut` shape as `/me/tasks`
+    items — single source of truth so the AnswerForm's post-submit poll loop
+    (1500 ms cadence, 60 s ceiling — critical read 1) reads exactly the same
+    fields it already rendered from the list.
+
+    The poll loop fires this until `draft_state == 'drafted'` so the card can
+    swap its `<AnswerForm>` body for the rendered `<DraftView>` without a
+    page refetch.
+    """
+    return _require_owned_task(task_id, user, db)
