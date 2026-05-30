@@ -47,12 +47,13 @@ app.add_middleware(
     https_only=False,
 )
 
-# CORS — allow the throwaway dashboard during dev. Covers both localhost and
-# 127.0.0.1 loopback names and Vite's port-fallback range (5173 if free,
-# 5174/5175 if 5173 is taken). Still no "*"; still allow_credentials=False.
+# CORS — allow the Next.js frontend (3000) and the throwaway dev dashboard
+# during transition (Vite's 5173/5174/5175 port-fallback range, deleted in
+# Phase 10 Step D). Covers both localhost and 127.0.0.1 loopback names.
+# Still no "*"; still allow_credentials=False.
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):(5173|5174|5175)",
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):(3000|5173|5174|5175)",
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=False,
