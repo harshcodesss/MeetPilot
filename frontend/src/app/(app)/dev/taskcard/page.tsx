@@ -1,9 +1,14 @@
+import { AnswerForm } from "@/components/app/AnswerForm";
 import { ConfidenceBadge } from "@/components/app/ConfidenceBadge";
 import { DraftView } from "@/components/app/DraftView";
 import { MeetingCard } from "@/components/app/MeetingCard";
 import { StatCard } from "@/components/app/StatCard";
 import { Card } from "@/components/ui/Card";
-import { mockHandlerTasks, mockSessions } from "@/lib/dev-mocks";
+import {
+  mockHandlerTasks,
+  mockSessions,
+  mockTaskAwaiting,
+} from "@/lib/dev-mocks";
 
 /**
  * Phase 3 dev-only mount, lives at `/dev/taskcard`. Renders every Phase 3
@@ -66,11 +71,15 @@ export default function TaskCardDevPage() {
       </Section>
 
       <Section title="AnswerForm">
-        <Card variant="flat">
-          <p className="text-sm text-ink-muted">
-            Phase 3.2 — coming after DraftView.
-          </p>
-        </Card>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <Card>
+            <p className="mb-4 text-xs text-ink-faint">
+              Mock-mode. Fill (or not), Submit, watch the spinner appear.
+              Stays on the polling state — Phase 4 wires real submission.
+            </p>
+            <AnswerForm task={mockTaskAwaiting} mockMode />
+          </Card>
+        </div>
       </Section>
 
       <Section title="TaskCard">
