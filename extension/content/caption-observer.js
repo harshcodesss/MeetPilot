@@ -47,6 +47,7 @@ const DEBOUNCE_MS = 1800;
 // SESSION_RESET from the SW so a restart on the same Meet tab starts clean.
 let lastEmittedTextByNode = new WeakMap(); // node → last full text we emitted
 let debounceTimer         = null;
+let extensionInvalidated  = false;          // flipped once the extension goes away
 
 // Snapshot of the most recent extracted speaker/text for the still-growing
 // last caption item. Refreshed on every mutation regardless of prior emit
@@ -96,6 +97,8 @@ function diffToEmit(node, currentText) {
 // callers that need ordering — FLUSH_PENDING — can await it.
 // ============================================================================
 function emitSegment(node) {
+  if (extensionInvalidated) return null;
+
   let { speaker, text } = extractSegment(node);
   if (!text && latestPending && latestPending.node === node) {
     speaker = latestPending.speaker;
@@ -109,13 +112,51 @@ function emitSegment(node) {
   lastEmittedTextByNode.set(node, text);
   console.log(`[MeetPilot] segment → ${speaker}: ${toEmit}`);
 
-  const sent = chrome.runtime.sendMessage({ type: 'SEGMENT', speaker, text: toEmit })
-    .catch(() => {
-      // SW may be briefly asleep during MV3 lifecycle; safe to swallow.
-    });
+  const sent = safeSendMessage({ type: 'SEGMENT', speaker, text: toEmit });
 
   if (latestPending && latestPending.node === node) latestPending = null;
   return sent;
+}
+
+// ============================================================================
+// Safe wrapper around chrome.runtime.sendMessage
+//
+// When the extension is reloaded (or its service worker is killed and replaced)
+// while a Meet tab is still alive, the in-tab content script keeps running but
+// its bridge to chrome.runtime is dead. In that state sendMessage throws
+// SYNCHRONOUSLY ("Extension context invalidated.") — a chained .catch() never
+// sees it. We catch both shapes (sync throw + rejected promise), flip a flag,
+// and stop observing so the page doesn't keep spewing errors. The user can
+// recover by reloading the tab (fresh content-script injection).
+// ============================================================================
+function safeSendMessage(payload) {
+  if (extensionInvalidated) return null;
+  try {
+    const p = chrome.runtime.sendMessage(payload);
+    if (p && typeof p.catch === 'function') {
+      p.catch((err) => {
+        if (isContextInvalidatedError(err)) markContextInvalidated();
+      });
+    }
+    return p;
+  } catch (err) {
+    if (isContextInvalidatedError(err)) markContextInvalidated();
+    return null;
+  }
+}
+
+function isContextInvalidatedError(err) {
+  return !!err && /Extension context invalidated/i.test(String(err.message || err));
+}
+
+function markContextInvalidated() {
+  if (extensionInvalidated) return;
+  extensionInvalidated = true;
+  console.warn('[MeetPilot] extension context invalidated — reload this Meet tab to resume capture');
+  if (containerObserver) containerObserver.disconnect();
+  containerObserver = null;
+  clearTimeout(debounceTimer);
+  debounceTimer = null;
 }
 
 // ============================================================================
