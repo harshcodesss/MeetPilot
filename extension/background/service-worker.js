@@ -41,6 +41,36 @@ let seq          = 0;    // monotonic counter; reset on each session start
 let lastFlushAt  = 0;    // Date.now() of last successful flush
 
 // ============================================================================
+// Capture-state rehydration on SW startup
+//
+// MV3 kills the service worker after ~30s of inactivity. If that happens
+// mid-capture, in-memory captureState/seq/buffer is wiped. When Chrome later
+// revives the SW for a queued message (STOP_CAPTURE on user click, or a new
+// SEGMENT when captions resume), the SW would otherwise see isCapturing=false
+// and drop the message — Stop never calls /complete, new segments collide on
+// seq with the ones already in the DB.
+//
+// storage.session persists across SW restarts within a browser session, so we
+// stash the bits that matter — captureState (so STOP completes the right
+// session) and seq (so new segments after revival don't collide). Buffer is
+// intentionally NOT persisted: anything captured but not yet flushed before
+// SW death is lost, and the backend's (session_id, seq) dedup handles retries.
+//
+// handleMessage awaits `rehydrated` so a message that arrives before this
+// promise resolves still sees the restored state.
+// ============================================================================
+const rehydrated = chrome.storage.session
+  .get(['captureState', 'capSeq'])
+  .then((s) => {
+    if (s.captureState?.isCapturing) {
+      captureState = s.captureState;
+      seq = s.capSeq ?? 0;
+      console.log(`[MeetPilot SW] rehydrated: session=${captureState.sessionId} seq=${seq}`);
+    }
+  })
+  .catch((err) => console.warn('[MeetPilot SW] rehydrate read failed:', err.message));
+
+// ============================================================================
 // Broadcast a lifecycle message to every open Meet tab's content script.
 // Errors are swallowed — a tab without a listener (e.g. page still loading)
 // just means there's nothing on the other end to coordinate with.
@@ -159,6 +189,11 @@ async function handleExternalMessage(msg) {
 }
 
 async function handleMessage(msg) {
+  // Wait for the startup rehydration to complete so any handler that reads
+  // captureState/seq sees the restored values rather than the module-init
+  // defaults. After first resolution this is effectively a no-op.
+  await rehydrated;
+
   // ------------------------------------------------------------------
   // START_CAPTURE — call /session/start, initialise state
   // ------------------------------------------------------------------
@@ -168,7 +203,7 @@ async function handleMessage(msg) {
     buffer      = [];
     seq         = 0;
     lastFlushAt = Date.now();
-    await chrome.storage.session.set({ captureState });
+    await chrome.storage.session.set({ captureState, capSeq: 0 });
 
     // Tell open Meet tabs to clear per-session state so a node Meet re-uses
     // across sessions isn't muted by the previous run's emittedNodes WeakSet.
@@ -197,7 +232,7 @@ async function handleMessage(msg) {
 
     captureState = { isCapturing: false, sessionId: null };
     buffer       = [];
-    await chrome.storage.session.set({ captureState });
+    await chrome.storage.session.set({ captureState, capSeq: 0 });
     return { ok: true };
   }
 
@@ -208,6 +243,10 @@ async function handleMessage(msg) {
     if (!captureState.isCapturing) return { ok: true }; // not capturing — drop
 
     seq += 1;
+    // Persist seq so a subsequent SW death doesn't reset us and cause new
+    // segments to collide with already-flushed ones. storage.session is
+    // in-memory; fire-and-forget is safe.
+    void chrome.storage.session.set({ capSeq: seq });
     buffer.push({
       seq,
       speaker:   msg.speaker,
