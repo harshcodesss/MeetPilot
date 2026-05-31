@@ -112,7 +112,15 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   handleMessage(msg)
     .then(sendResponse)
     .catch(err => {
-      console.error('[MeetPilot SW] unhandled error in', msg.type, err);
+      // AuthError is part of the normal auth flow (no token, or backend 401
+      // cleared it). The popup observes storage.local and shows the connect
+      // state automatically. Log as warn so chrome://extensions doesn't flag
+      // it as an "Error" on the card — it isn't one.
+      if (err instanceof AuthError) {
+        console.warn('[MeetPilot SW] auth needed for', msg.type, '—', err.message);
+      } else {
+        console.error('[MeetPilot SW] unhandled error in', msg.type, err);
+      }
       sendResponse({ ok: false, error: err.message });
     });
   return true; // keep channel open for async sendResponse
