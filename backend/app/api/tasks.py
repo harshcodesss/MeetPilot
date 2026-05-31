@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user
 from app.auth.ownership import _require_owned_task
 from app.database import get_db
-from app.models import User
+from app.models import SegmentDB, User
 
 router = APIRouter()
 
@@ -55,6 +55,29 @@ class TaskOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class SourceSegmentOut(BaseModel):
+    """A single transcript segment cited by a task's `source_seq`. Slim shape —
+    only the fields the detail page needs to render the 'Why this task' panel.
+    """
+
+    seq: int
+    speaker: str
+    text: str
+    timestamp: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class TaskDetailOut(TaskOut):
+    """`/tasks/{id}` response — TaskOut plus the cited transcript segments.
+
+    The list endpoint (`/me/tasks`) stays lean; only this single-task read
+    pays the segment join. Empty list if the task has no `source_seq`.
+    """
+
+    source_segments: list[SourceSegmentOut] = []
 
 
 # ---------------------------------------------------------------------------
@@ -126,19 +149,35 @@ def set_task_placement(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/tasks/{task_id}", response_model=TaskOut)
+@router.get("/tasks/{task_id}", response_model=TaskDetailOut)
 def get_task(
     task_id: str,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Single task by id, owner-scoped. Same `TaskOut` shape as `/me/tasks`
-    items — single source of truth so the AnswerForm's post-submit poll loop
-    (1500 ms cadence, 60 s ceiling — critical read 1) reads exactly the same
-    fields it already rendered from the list.
+    """Single task by id, owner-scoped. Adds `source_segments` (the transcript
+    lines cited by the task's `source_seq`) so the detail page can render the
+    'Why this task' panel without a follow-up fetch.
 
-    The poll loop fires this until `draft_state == 'drafted'` so the card can
-    swap its `<AnswerForm>` body for the rendered `<DraftView>` without a
-    page refetch.
+    The AnswerForm's poll loop (1500 ms cadence, 60 s ceiling) ignores the
+    new field — it only reads `draft_state` to know when to swap to the
+    DraftView. Each poll carries a few extra rows of transcript text;
+    negligible since polls are bounded at ~40 over a 60 s window.
     """
-    return _require_owned_task(task_id, user, db)
+    task = _require_owned_task(task_id, user, db)
+    if task.source_seq:
+        segments = (
+            db.query(SegmentDB)
+            .filter(
+                SegmentDB.session_id == task.session_id,
+                SegmentDB.seq.in_(task.source_seq),
+            )
+            .order_by(SegmentDB.seq)
+            .all()
+        )
+    else:
+        segments = []
+    # SQLAlchemy lets us tack the segments onto the ORM instance so Pydantic's
+    # from_attributes picks them up via getattr — avoids a manual model_dump.
+    task.source_segments = segments  # type: ignore[attr-defined]
+    return task

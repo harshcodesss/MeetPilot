@@ -104,6 +104,16 @@ export interface Question {
   hint?: string;
 }
 
+/** One transcript segment cited by a task's `source_seq`. Populated by the
+ *  single-task GET (`/tasks/{id}`) so the detail page can render "Why this
+ *  task". Absent on list endpoints. */
+export interface SourceSegment {
+  seq: number;
+  speaker: string;
+  text: string;
+  timestamp: string; // ISO datetime
+}
+
 // ---------------------------------------------------------------------------
 // Core entities
 // ---------------------------------------------------------------------------
@@ -126,6 +136,8 @@ export interface Task {
   draft: Draft | null;
   is_done: boolean;
   created_at: string; // ISO datetime
+  /** Only present on `/tasks/{id}` — the transcript lines cited by source_seq. */
+  source_segments?: SourceSegment[];
 }
 
 /** Slim projection for the Calendar page — `/me/tasks/deadlines`. */
