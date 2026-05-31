@@ -100,7 +100,7 @@ export type Draft =
 
 export interface Question {
   id: string;
-  prompt: string;
+  text: string;
   hint?: string;
 }
 

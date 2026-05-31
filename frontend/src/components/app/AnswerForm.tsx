@@ -213,12 +213,12 @@ export function AnswerForm({ task, onTaskUpdated, mockMode = false }: AnswerForm
             htmlFor={`answer-${q.id}`}
             className="block text-sm font-medium text-ink"
           >
-            {q.prompt}
+            {q.text}
           </label>
           {q.hint ? (
             <p className="mt-1 text-xs text-ink-muted">{q.hint}</p>
           ) : null}
-          {q.prompt.length > PROMPT_LENGTH_FOR_TEXTAREA ? (
+          {q.text.length > PROMPT_LENGTH_FOR_TEXTAREA ? (
             <Textarea
               id={`answer-${q.id}`}
               rows={3}
