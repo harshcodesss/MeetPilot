@@ -102,3 +102,80 @@ export function groupByYmd<T extends { deadline_date: string }>(
   }
   return map;
 }
+
+// ---------------------------------------------------------------------------
+// Day / Week helpers (added for the Day / Week / Month view toggle)
+// ---------------------------------------------------------------------------
+
+/** `n` days added (can be negative). */
+export function addDays(date: Date, n: number): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + n);
+}
+
+/** The Sunday on or before `date` (week starts Sunday, matching getDay()). */
+export function startOfWeek(date: Date): Date {
+  return addDays(date, -date.getDay());
+}
+
+/** Position of `date` vs today (local). */
+export function positionOf(date: Date): CalendarCell["position"] {
+  const cmp = date.getTime() - todayLocal().getTime();
+  return cmp < 0 ? "past" : cmp === 0 ? "today" : "future";
+}
+
+/** Build the seven Sun→Sat cells for the week containing `anchor`. */
+export function buildWeekCells(anchor: Date): CalendarCell[] {
+  const start = startOfWeek(anchor);
+  const cells: CalendarCell[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(start, i);
+    cells.push({
+      date: d,
+      ymd: formatYmd(d),
+      day: d.getDate(),
+      inMonth: true, // not meaningful in week view; always render full strength
+      position: positionOf(d),
+    });
+  }
+  return cells;
+}
+
+/** "Jun 1 – 7, 2026" / "May 31 – Jun 6, 2026" for the week of `anchor`. */
+export function weekRangeLabel(anchor: Date): string {
+  const start = startOfWeek(anchor);
+  const end = addDays(start, 6);
+  const sameMonth = start.getMonth() === end.getMonth();
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const startStr = start.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+  const endStr = end.toLocaleDateString(undefined, {
+    month: sameMonth ? undefined : "short",
+    day: "numeric",
+  });
+  const year = sameYear
+    ? end.getFullYear()
+    : `${start.getFullYear()}–${end.getFullYear()}`;
+  return `${startStr} – ${endStr}, ${year}`;
+}
+
+/** "Monday, June 2, 2026" for `date`. */
+export function fullDayLabel(date: Date): string {
+  return date.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+/** The 24 hours of a day, 0 (12am) … 23 (11pm). */
+export const HOURS: number[] = Array.from({ length: 24 }, (_, h) => h);
+
+/** Format an hour-of-day as a compact label: 0 → "12am", 13 → "1pm". */
+export function formatHour(hour: number): string {
+  const period = hour < 12 ? "am" : "pm";
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${h12}${period}`;
+}
