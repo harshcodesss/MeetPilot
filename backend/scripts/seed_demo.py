@@ -34,8 +34,8 @@ from app.models import User, AuthSession, SessionDB, SegmentDB, TaskDB
 
 # Stable identifiers for the demo user so re-runs find + wipe the right row.
 DEMO_GOOGLE_SUB = "seed-demo-harsh"
-DEMO_EMAIL = "demo@meetpilot.local"
-DEMO_NAME = "Demo User"
+DEMO_EMAIL = "harshmessi558@gmail.com"
+DEMO_NAME = "Harsh Rathi"
 
 Base.metadata.create_all(bind=engine)
 
