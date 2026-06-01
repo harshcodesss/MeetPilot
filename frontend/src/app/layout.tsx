@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Geist, Inter } from "next/font/google";
 
 import "./globals.css";
 
-// Inter — the modern SaaS workhorse. Loaded via next/font so it's
-// server-rendered + no CLS. Exposed as the CSS var `--font-inter`; the
-// `@theme --font-sans` in globals.css consumes it as the primary family.
+// Geist — the app's primary sans, exposed as `--font-sans` (consumed by the
+// `font-sans` utility + the body font-family). Inter stays available as
+// `--font-inter` for any explicit opt-ins.
+const geist = Geist({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -24,7 +29,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`h-full antialiased ${inter.variable}`}>
+    <html
+      lang="en"
+      className={`h-full font-sans antialiased ${geist.variable} ${inter.variable}`}
+    >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
