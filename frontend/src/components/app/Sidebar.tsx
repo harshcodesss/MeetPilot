@@ -9,6 +9,7 @@ import {
   Home,
   ListChecks,
   LogOut,
+  Puzzle,
   Settings,
   Video,
   type LucideIcon,
@@ -53,14 +54,14 @@ const NAV_ITEMS: Array<{
   icon: LucideIcon;
   color: ActiveColor;
 }> = [
-  // Harsh-assigned: dashboard=blue, meetings=yellow, tasks=green, calendar=red.
-  // Last two are my call: settings=blue (system/utility feel), help=yellow
-  // (info/docs feel) — picks let the active palette echo the top 4 cleanly.
+  // Harsh-assigned: dashboard=blue, meetings=yellow, tasks=green, calendar=red,
+  // extension=blue, settings=red. Help=yellow is my pick (info/docs feel).
   { href: "/dashboard", label: "Dashboard", icon: Home, color: "blue" },
   { href: "/meetings", label: "Meetings", icon: Video, color: "yellow" },
   { href: "/tasks", label: "Tasks", icon: ListChecks, color: "green" },
   { href: "/calendar", label: "Calendar", icon: Calendar, color: "red" },
-  { href: "/settings", label: "Settings", icon: Settings, color: "blue" },
+  { href: "/extension", label: "Extension", icon: Puzzle, color: "blue" },
+  { href: "/settings", label: "Settings", icon: Settings, color: "red" },
   { href: "/help", label: "Help", icon: FileText, color: "yellow" },
 ];
 
