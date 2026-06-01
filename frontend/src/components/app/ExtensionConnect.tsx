@@ -58,7 +58,13 @@ type ConnectStatus =
   | { kind: "connected" }
   | { kind: "failed"; message: string };
 
-export function ExtensionConnect() {
+interface ExtensionConnectProps {
+  /** When false, the internal "Get the extension" heading + blurb is hidden —
+   *  used on Settings, where an outer section heading already labels it. */
+  showHeading?: boolean;
+}
+
+export function ExtensionConnect({ showHeading = true }: ExtensionConnectProps) {
   const [status, setStatus] = useState<ConnectStatus>({ kind: "idle" });
   const [showPairing, setShowPairing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -123,26 +129,45 @@ export function ExtensionConnect() {
   const bearer = getToken();
 
   return (
-    <Card>
-      <h2 className="text-base font-medium text-ink">Get the extension</h2>
-      <p className="mt-2 text-sm text-ink-muted">
-        Install the Chrome extension so MeetPilot can capture your Google Meet
-        calls automatically.
-      </p>
+    <Card className="p-7">
+      {showHeading ? (
+        <>
+          <h2 className="text-base font-medium text-ink">Get the extension</h2>
+          <p className="mt-1 text-sm text-ink-muted">
+            Install the Chrome extension so MeetPilot can capture your Google
+            Meet calls automatically.
+          </p>
+        </>
+      ) : null}
 
-      <a
-        href={`${API_BASE_URL}/static/meetpilot-extension.zip`}
-        download
-        className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-soft hover:bg-primary-hover transition-colors"
-      >
-        Download (.zip)
-      </a>
+      {/* Primary actions — sized to content, not stretched. Download installs
+          the unpacked build; Connect hands the bearer to the extension. */}
+      <div className={`flex flex-wrap items-center gap-3 ${showHeading ? "mt-5" : ""}`}>
+        <a
+          href={`${API_BASE_URL}/static/meetpilot-extension.zip`}
+          download
+          className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover transition-colors"
+        >
+          Download (.zip)
+        </a>
+        <ConnectButton status={status} onConnect={onConnect} />
+      </div>
 
-      <details className="mt-4 text-sm text-ink-muted">
-        <summary className="cursor-pointer font-medium text-ink">
+      {status.kind === "failed" ? (
+        <p className="mt-3 text-xs text-red">{status.message}</p>
+      ) : null}
+      {status.kind === "connected" ? (
+        <p className="mt-3 text-xs text-green">
+          Connected. Open the extension popup and click Start Capture on your
+          next Meet.
+        </p>
+      ) : null}
+
+      <details className="mt-6 text-sm text-ink-muted">
+        <summary className="cursor-pointer text-sm font-medium text-ink hover:text-ink-muted transition-colors">
           How to install
         </summary>
-        <ol className="mt-2 list-decimal space-y-1 pl-5">
+        <ol className="mt-3 list-decimal space-y-1.5 pl-5">
           <li>Unzip the downloaded file.</li>
           <li>
             Open{" "}
@@ -156,39 +181,26 @@ export function ExtensionConnect() {
         </ol>
       </details>
 
-      <div className="mt-4">
-        <ConnectButton status={status} onConnect={onConnect} />
-        {status.kind === "failed" ? (
-          <p className="mt-2 text-xs text-red">{status.message}</p>
-        ) : null}
-        {status.kind === "connected" ? (
-          <p className="mt-2 text-xs text-green">
-            Connected. Open the extension popup and click Start Capture on your
-            next Meet.
-          </p>
-        ) : null}
-      </div>
-
       <details
         className="mt-4 text-sm"
         open={showPairing}
         onToggle={(e) => setShowPairing((e.target as HTMLDetailsElement).open)}
       >
-        <summary className="cursor-pointer text-xs font-medium text-ink-muted hover:text-ink">
+        <summary className="cursor-pointer text-sm font-medium text-ink hover:text-ink-muted transition-colors">
           Having trouble? Show pairing code
         </summary>
         <div className="mt-3 space-y-2">
           <p className="text-xs text-ink-muted">
             Copy this code and paste it into the extension popup’s token input.
           </p>
-          <code className="block break-all rounded-xl border border-line bg-surface p-3 text-xs text-ink">
+          <code className="block break-all rounded-lg border border-line bg-surface p-3 text-xs text-ink">
             {bearer ?? "(sign in to see your pairing code)"}
           </code>
           <button
             type="button"
             onClick={onCopyPairingCode}
             disabled={!bearer}
-            className="rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+            className="rounded-md border border-line bg-white px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
           >
             {copied ? "Copied!" : "Copy"}
           </button>
@@ -214,7 +226,7 @@ function ConnectButton({
       <button
         type="button"
         disabled
-        className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white opacity-70"
+        className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-line bg-white px-4 py-2 text-sm font-medium text-ink-muted"
       >
         <Spinner size="sm" />
         Connecting…
@@ -226,7 +238,7 @@ function ConnectButton({
       <button
         type="button"
         disabled
-        className="inline-flex w-full cursor-default items-center justify-center rounded-xl border border-green bg-green-bg px-4 py-2 text-sm font-medium text-green"
+        className="inline-flex cursor-default items-center justify-center rounded-lg border border-green bg-green-bg px-4 py-2 text-sm font-medium text-green"
       >
         ✓ Connected
       </button>
@@ -236,7 +248,7 @@ function ConnectButton({
     <button
       type="button"
       onClick={onConnect}
-      className="inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-soft hover:bg-primary-hover transition-colors"
+      className="inline-flex items-center justify-center rounded-lg border border-line bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-surface transition-colors"
     >
       {status.kind === "failed" ? "Try again" : "Connect to my account"}
     </button>

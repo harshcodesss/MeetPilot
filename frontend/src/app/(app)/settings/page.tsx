@@ -1,5 +1,6 @@
 "use client";
 
+import { Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -101,51 +102,99 @@ export default function SettingsPage() {
 
   const { user } = pageState;
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight text-ink">
-        Settings
-      </h1>
+    <div className="space-y-10 px-2">
+      <div className="border-b border-line pb-4">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">
+          Settings
+        </h1>
+      </div>
 
-      <Card>
-        <h2 className="text-base font-medium text-ink">Account</h2>
-        <p className="mt-1 text-sm text-ink-muted">
-          Signed in with Google. To change your account, sign out and sign in
-          again.
-        </p>
-        <dl className="mt-4 space-y-2 text-sm">
-          <div className="flex gap-3">
-            <dt className="w-20 shrink-0 text-xs font-medium uppercase tracking-wide text-ink-muted">
-              Name
-            </dt>
-            <dd className="text-ink">{user.display_name}</dd>
-          </div>
-          <div className="flex gap-3">
-            <dt className="w-20 shrink-0 text-xs font-medium uppercase tracking-wide text-ink-muted">
-              Email
-            </dt>
-            <dd className="text-ink">{user.email}</dd>
-          </div>
-        </dl>
-      </Card>
+      {/* Account — Google identity, read-only. Each field is its own row,
+          separated by a hairline; the (disabled) Edit affordance is visual
+          only, since identity is owned by Google. */}
+      <section>
+        <SectionHeading
+          title="Account"
+          subtitle="Your Google identity. MeetPilot reads these from sign-in — to change them, update your Google account."
+        />
+        <div className="mt-4 divide-y divide-line border-t border-line">
+          <FieldRow label="Name" value={user.display_name} />
+          <FieldRow label="Email" value={user.email} />
+        </div>
+      </section>
 
-      <ExtensionConnect />
-
-      <Card>
-        <h2 className="text-base font-medium text-ink">Sign out</h2>
-        <p className="mt-1 text-sm text-ink-muted">
-          Ends this browser session. Your captured meetings stay in your
-          account — sign in again to see them.
-        </p>
+      {/* Browser extension — reused connect card (its own self-contained UI). */}
+      <section>
+        <SectionHeading
+          title="Browser extension"
+          subtitle="Connect the Chrome extension to start capturing your meetings."
+        />
         <div className="mt-4">
-          <Button
-            variant="danger"
+          <ExtensionConnect showHeading={false} />
+        </div>
+      </section>
+
+      {/* Sign out */}
+      <section>
+        <SectionHeading
+          title="Sign out"
+          subtitle="Ends this browser session. Your captured meetings stay in your account — sign in again to see them."
+        />
+        <div className="mt-4">
+          <button
+            type="button"
             onClick={onSignOut}
             disabled={signingOut}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-red px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {signingOut ? "Signing out…" : "Sign out"}
-          </Button>
+          </button>
         </div>
-      </Card>
+      </section>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sub-components — local to the page
+// ---------------------------------------------------------------------------
+
+function SectionHeading({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div>
+      <h2 className="text-lg font-semibold tracking-tight text-ink">{title}</h2>
+      <p className="mt-1 text-sm text-ink-muted">{subtitle}</p>
+    </div>
+  );
+}
+
+function FieldRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-4">
+      <div className="min-w-0">
+        <div className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+          {label}
+        </div>
+        <div className="mt-1 break-all text-sm text-ink">{value}</div>
+      </div>
+      {/* Disabled by design — identity is managed by Google, so this is a
+          visual affordance only (no edit flow in v1). */}
+      <Button
+        variant="secondary"
+        size="sm"
+        disabled
+        title="Managed by your Google account"
+        className="rounded-md"
+      >
+        <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+        Edit
+      </Button>
     </div>
   );
 }
