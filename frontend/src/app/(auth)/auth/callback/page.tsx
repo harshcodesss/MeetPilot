@@ -38,7 +38,7 @@ function CallbackInner() {
 
   if (token) {
     return (
-      <Card className="text-center">
+      <Card className="w-full max-w-sm text-center">
         <Spinner />
         <p className="mt-4 text-sm text-ink-muted">Completing sign-in…</p>
       </Card>
@@ -47,7 +47,7 @@ function CallbackInner() {
 
   const errorMsg = friendlyError(error);
   return (
-    <Card className="text-center">
+    <Card className="w-full max-w-sm text-center">
       <h1 className="text-xl font-semibold text-ink">Sign-in failed</h1>
       <p className="mt-2 text-sm text-ink-muted">{errorMsg}</p>
       <Link
@@ -83,7 +83,7 @@ export default function CallbackPage() {
   return (
     <Suspense
       fallback={
-        <Card className="text-center">
+        <Card className="w-full max-w-sm text-center">
           <Spinner />
           <p className="mt-4 text-sm text-ink-muted">Loading…</p>
         </Card>
