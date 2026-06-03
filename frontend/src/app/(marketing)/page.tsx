@@ -1,6 +1,9 @@
 import Link from "next/link";
 
 import { FadeIn } from "@/components/marketing/FadeIn";
+import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
+import { Highlighter } from "@/components/ui/highlighter";
+import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
 
 /**
  * Landing — the visual high point. Built simple in Phase 1, polished here
@@ -38,62 +41,62 @@ export default function MarketingHome() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      {/* Soft brand-tint backdrop — radial gradient that fades to white. */}
+    <section className="relative -mt-20 overflow-hidden pt-20">
+      {/* B&W theme: a near-white backdrop with one soft blue wash up top — the
+          only color in the section, so the blue reads as a deliberate accent. */}
       <div
         aria-hidden
-        className="absolute inset-x-0 top-0 -z-10 h-[500px] bg-gradient-to-b from-primary-tint to-white"
+        className="absolute inset-x-0 top-0 -z-10 h-[520px] bg-gradient-to-b from-primary-tint/60 via-white to-white"
       />
-      <div className="mx-auto max-w-5xl px-6 pt-24 pb-20 text-center">
+      {/* Interactive ripple grid — click a cell to fan a pulse outward. */}
+      <BackgroundRippleEffect />
+      <div className="relative z-10 mx-auto max-w-5xl px-6 pt-36 pb-24 text-center">
         <FadeIn>
-          <BrandMark />
-        </FadeIn>
-        <FadeIn delay={0.1}>
-          <h1 className="mt-8 text-4xl font-semibold tracking-tight text-ink sm:text-6xl">
-            Turn meetings into
+          <h1 className="text-4xl font-semibold tracking-tight text-ink sm:text-6xl">
+            Every meeting,
             <br />
-            <span className="text-primary">ready-to-send</span> action items.
+            turned to action.
           </h1>
         </FadeIn>
-        <FadeIn delay={0.2}>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-ink-muted sm:text-xl">
-            MeetPilot watches your Google Meet, pulls out who owes what by
-            when, and drafts the follow-up work for one-click approval. The
-            AI proposes. You dispose.
+        <FadeIn delay={0.1} y={0}>
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-ink-muted sm:text-xl">
+            Your meeting copilot captures{" "}
+            <Highlighter action="highlight" color="#cfe3ff" isView>
+              every commitment
+            </Highlighter>{" "}
+            from a Google Meet and turns it into{" "}
+            <Highlighter
+              action="underline"
+              color="#ea4335"
+              strokeWidth={2}
+              isView
+            >
+              ready-to-send drafts
+            </Highlighter>
+            . The AI proposes, you dispose — nothing leaves your hands without
+            a click.
           </p>
         </FadeIn>
-        <FadeIn delay={0.3}>
-          <Link
-            href="/login"
-            className="mt-10 inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-base font-medium text-white shadow-soft hover:bg-primary-hover transition-colors sm:text-lg"
-          >
-            Continue with Google
-            <span aria-hidden>→</span>
-          </Link>
+        <FadeIn delay={0.2}>
+          <div className="mt-10 flex justify-center">
+            <Link href="/login" className="inline-block">
+              <HoverBorderGradient
+                as="span"
+                className="flex items-center gap-2 px-7 py-3 text-base font-medium"
+              >
+                Get Started
+                <span aria-hidden>→</span>
+              </HoverBorderGradient>
+            </Link>
+          </div>
         </FadeIn>
-        <FadeIn delay={0.4}>
-          <p className="mt-4 text-xs text-ink-faint">
+        <FadeIn delay={0.3}>
+          <p className="mt-5 text-xs text-ink-faint">
             No audio recording. No live sending. You review every draft.
           </p>
         </FadeIn>
       </div>
     </section>
-  );
-}
-
-function BrandMark() {
-  return (
-    <div className="inline-flex items-center gap-3 rounded-2xl bg-white px-6 py-3 shadow-soft ring-1 ring-line">
-      <span
-        aria-hidden
-        className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-lg font-bold text-white shadow-soft"
-      >
-        M
-      </span>
-      <span className="text-lg font-semibold tracking-tight text-ink">
-        MeetPilot
-      </span>
-    </div>
   );
 }
 

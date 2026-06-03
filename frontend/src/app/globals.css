@@ -58,6 +58,11 @@
   --radius-xl: 1rem;
   --radius-2xl: 1.25rem;
 
+  /* Drives the click ripple in <BackgroundRippleEffect/>. Each cell sets its
+     own --delay / --duration inline so the pulse fans out from the click. */
+  --animate-cell-ripple: cell-ripple var(--duration, 200ms) ease-out
+    var(--delay, 0ms);
+
   --font-sans:
     var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, Helvetica, Arial, sans-serif;
@@ -182,6 +187,21 @@ body {
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+@keyframes cell-ripple {
+  0% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
 }
 
 @layer base {
