@@ -6,6 +6,7 @@ import { IntegrationsSection } from "@/components/marketing/IntegrationsSection"
 import { HowItWorksSection } from "@/components/marketing/HowItWorksSection";
 import { FeaturesSection } from "@/components/marketing/FeaturesSection";
 import { AboutSection } from "@/components/marketing/AboutSection";
+import { BackgroundBeams } from "@/components/ui/background-beams";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import { Highlighter } from "@/components/ui/highlighter";
 import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
@@ -117,24 +118,30 @@ function Hero() {
 
 function ClosingCta() {
   return (
-    <section className="px-6 pb-24 pt-4">
-      <FadeIn>
-        <div className="mx-auto max-w-3xl rounded-2xl bg-primary px-8 py-12 text-center shadow-soft">
-          <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+    <section className="relative overflow-hidden bg-neutral-950 px-6 py-28">
+      <BackgroundBeams />
+      <div className="relative z-10 mx-auto max-w-3xl text-center">
+        <FadeIn>
+          <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-5xl">
             Stop losing what you agreed to.
           </h2>
-          <p className="mt-3 text-base text-white/80">
-            Sign in with Google. Install the extension. Run a meeting.
+        </FadeIn>
+        <FadeIn delay={0.1}>
+          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-neutral-400 sm:text-lg">
+            Sign in with Google, install the extension, and let MeetPilot turn
+            your next meeting into actions you approve in one click.
           </p>
+        </FadeIn>
+        <FadeIn delay={0.2}>
           <Link
             href="/login"
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-base font-medium text-primary shadow-soft hover:bg-surface transition-colors"
+            className="mt-10 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-base font-medium text-neutral-900 transition-colors hover:bg-neutral-200"
           >
-            Continue with Google
+            Get Started
             <span aria-hidden>→</span>
           </Link>
-        </div>
-      </FadeIn>
+        </FadeIn>
+      </div>
     </section>
   );
 }
