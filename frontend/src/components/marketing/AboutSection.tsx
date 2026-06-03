@@ -123,7 +123,7 @@ const CONTACT = {
 const CONTACT_LINKS = [
   {
     label: "LinkedIn",
-    href: "https://www.linkedin.com/in/harshrathi",
+    href: "https://www.linkedin.com/in/harsh-rathi-3870012aa/",
     src: "/logos/linkedin.svg",
   },
   {
@@ -133,7 +133,7 @@ const CONTACT_LINKS = [
   },
   {
     label: "Gmail",
-    href: "mailto:harshmessi558@gmail.com",
+    href: "mailto:Harshmail3456@gmail.com",
     src: "/logos/gmail.svg",
   },
 ];
