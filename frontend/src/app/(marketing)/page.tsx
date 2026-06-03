@@ -5,6 +5,7 @@ import { DemoSection } from "@/components/marketing/DemoSection";
 import { IntegrationsSection } from "@/components/marketing/IntegrationsSection";
 import { HowItWorksSection } from "@/components/marketing/HowItWorksSection";
 import { FeaturesSection } from "@/components/marketing/FeaturesSection";
+import { AboutSection } from "@/components/marketing/AboutSection";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import { Highlighter } from "@/components/ui/highlighter";
 import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
@@ -35,6 +36,7 @@ export default function MarketingHome() {
       <IntegrationsSection />
       <HowItWorksSection />
       <FeaturesSection />
+      <AboutSection />
       <ClosingCta />
     </>
   );
