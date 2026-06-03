@@ -32,7 +32,6 @@ export default function MarketingHome() {
       <Hero />
       <DemoSection />
       <IntegrationsSection />
-      <WhatItDoes />
       <HowItWorksSection />
       <Features />
       <ClosingCta />
@@ -106,62 +105,7 @@ function Hero() {
 }
 
 // ---------------------------------------------------------------------------
-// 2. What it does — three-card row
-// ---------------------------------------------------------------------------
-
-const WHAT_CARDS = [
-  {
-    title: "Capture",
-    body:
-      "A Chrome extension reads Google Meet's on-screen captions in real time. No audio, no recording, no speech model.",
-  },
-  {
-    title: "Extract",
-    body:
-      "Gemini reads the transcript and finds the commitments — who said they'd do what, by when, with what level of confidence.",
-  },
-  {
-    title: "Draft",
-    body:
-      "Each task gets a handler-shaped draft (email, calendar event, ticket, Slack message, …) ready for your review.",
-  },
-];
-
-function WhatItDoes() {
-  return (
-    <section className="mx-auto max-w-5xl px-6 py-20">
-      <FadeIn>
-        <h2 className="text-center text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-          What MeetPilot does
-        </h2>
-      </FadeIn>
-      <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-        {WHAT_CARDS.map((card, i) => (
-          <FadeIn key={card.title} delay={i * 0.1}>
-            <div className="h-full rounded-2xl border border-line bg-white p-6 shadow-soft">
-              <div className="text-xs font-medium uppercase tracking-wide text-primary">
-                Step {i + 1}
-              </div>
-              <h3 className="mt-2 text-xl font-semibold text-ink">
-                {card.title}
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-ink-muted">
-                {card.body}
-              </p>
-            </div>
-          </FadeIn>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// 3. How it works — now lives in <HowItWorksSection/> (marketing/).
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// 4. Features grid
+// Features grid
 // ---------------------------------------------------------------------------
 
 const FEATURES = [

@@ -70,7 +70,7 @@ export function HowItWorksSection() {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {STEPS.map((step, i) => (
               <FadeIn key={step.title} delay={i * 0.1}>
-                <div className="flex h-full flex-col rounded-3xl border border-line bg-surface p-6">
+                <div className="group flex h-full flex-col rounded-3xl border border-line bg-surface p-6 transition duration-300 hover:-translate-y-1 hover:border-neutral-300 hover:shadow-lg">
                   <h3 className="text-center text-lg font-semibold text-ink">
                     {step.title}
                   </h3>
@@ -97,26 +97,26 @@ export function HowItWorksSection() {
 
 function CaptureIllo() {
   return (
-    <div className="w-full max-w-[220px] rounded-xl border border-line bg-white p-4 shadow-sm">
+    <div className="w-full max-w-[220px] rounded-xl border border-line bg-white p-4 shadow-sm transition-transform duration-300 group-hover:-translate-y-1">
       <div className="flex flex-col gap-3.5">
-        {[
-          { live: true, w: ["w-20", "w-14"] },
-          { live: false, w: ["w-16"] },
-          { live: false, w: ["w-24", "w-10"] },
-        ].map((row, i) => (
+        {[["w-20", "w-14"], ["w-16"], ["w-24", "w-10"]].map((bars, i) => (
           <div key={i} className="flex items-start gap-2.5">
-            <span
-              className={`mt-0.5 h-4 w-4 shrink-0 rounded-full ${
-                row.live ? "bg-primary" : "bg-neutral-200"
-              }`}
-            />
+            <span className="mt-0.5 h-4 w-4 shrink-0 rounded-full bg-neutral-200" />
             <div className="flex flex-1 flex-col gap-1.5">
-              {row.w.map((w, j) => (
+              {bars.map((w, j) => (
                 <span key={j} className={`h-2 rounded bg-neutral-200 ${w}`} />
               ))}
             </div>
           </div>
         ))}
+        {/* The line being captured right now — blue dot + blinking caret. */}
+        <div className="flex items-center gap-2.5">
+          <span className="h-4 w-4 shrink-0 animate-pulse rounded-full bg-primary" />
+          <div className="flex items-center gap-1">
+            <span className="h-2 w-12 rounded bg-neutral-200" />
+            <span className="h-3.5 w-0.5 animate-pulse bg-primary" />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -124,20 +124,32 @@ function CaptureIllo() {
 
 function ExtractIllo() {
   const rows = [
-    { dot: "bg-green", w: "w-24" },
-    { dot: "bg-yellow", w: "w-16" },
-    { dot: "bg-red", w: "w-20" },
+    { dot: "bg-green", w: "w-24", delay: "[animation-delay:0ms]", tdelay: "" },
+    {
+      dot: "bg-yellow",
+      w: "w-16",
+      delay: "[animation-delay:200ms]",
+      tdelay: "delay-75",
+    },
+    {
+      dot: "bg-red",
+      w: "w-20",
+      delay: "[animation-delay:400ms]",
+      tdelay: "delay-150",
+    },
   ];
   return (
     <div className="flex w-full max-w-[220px] flex-col gap-2.5">
       {rows.map((r, i) => (
         <div
           key={i}
-          className="flex items-center gap-2.5 rounded-lg border border-line bg-white px-3 py-2.5 shadow-sm"
+          className={`flex items-center gap-2.5 rounded-lg border border-line bg-white px-3 py-2.5 shadow-sm transition-all duration-300 group-hover:-translate-y-0.5 group-hover:border-neutral-300 ${r.tdelay}`}
         >
-          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${r.dot}`} />
+          <span
+            className={`h-2.5 w-2.5 shrink-0 animate-pulse rounded-full ${r.dot} ${r.delay}`}
+          />
           <span className={`h-2 rounded bg-neutral-200 ${r.w}`} />
-          <span className="ml-auto h-3.5 w-8 rounded bg-neutral-100" />
+          <span className="ml-auto h-3.5 w-8 rounded bg-neutral-100 transition-colors group-hover:bg-primary-tint" />
         </div>
       ))}
     </div>
@@ -147,11 +159,11 @@ function ExtractIllo() {
 function DraftIllo() {
   return (
     <div className="relative h-[150px] w-[180px]">
-      {/* Stacked back cards */}
-      <div className="absolute left-2 top-3 h-[130px] w-[150px] -rotate-6 rounded-xl border border-line bg-white/70" />
-      <div className="absolute right-2 top-2 h-[130px] w-[150px] rotate-6 rounded-xl border border-line bg-white/70" />
+      {/* Stacked back cards — fan out on hover. */}
+      <div className="absolute left-2 top-3 h-[130px] w-[150px] -rotate-6 rounded-xl border border-line bg-white/70 transition-transform duration-300 group-hover:-translate-x-3 group-hover:-rotate-12" />
+      <div className="absolute right-2 top-2 h-[130px] w-[150px] rotate-6 rounded-xl border border-line bg-white/70 transition-transform duration-300 group-hover:translate-x-3 group-hover:rotate-12" />
       {/* Front draft card */}
-      <div className="absolute left-1/2 top-1/2 h-[130px] w-[150px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line bg-white p-3.5 shadow-sm">
+      <div className="absolute left-1/2 top-1/2 h-[130px] w-[150px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line bg-white p-3.5 shadow-sm transition-transform duration-300 group-hover:-translate-y-[58%]">
         <span className="block h-2.5 w-20 rounded bg-neutral-300" />
         <div className="mt-3 flex flex-col gap-2">
           <span className="h-2 w-full rounded bg-neutral-200" />
@@ -159,17 +171,20 @@ function DraftIllo() {
           <span className="h-2 w-2/3 rounded bg-neutral-200" />
         </div>
       </div>
-      {/* Approval check */}
-      <span className="absolute -bottom-1 right-3 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-green text-white shadow-md">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-          <path
-            d="M2.5 7.5L5.5 10.5L11.5 3.5"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+      {/* Approval check — pulsing ring + pop on hover. */}
+      <span className="absolute -bottom-1 right-3 z-10 flex h-8 w-8 items-center justify-center">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green opacity-50" />
+        <span className="relative flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-green text-white shadow-md transition-transform duration-300 group-hover:scale-110">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+            <path
+              d="M2.5 7.5L5.5 10.5L11.5 3.5"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
       </span>
     </div>
   );
