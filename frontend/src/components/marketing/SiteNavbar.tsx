@@ -24,9 +24,10 @@ import {
  * Demo → Features → How it works. The CTA routes to the single Google sign-in.
  */
 const NAV_LINKS = [
-  { name: "Demo", link: "#demo" },
-  { name: "Features", link: "#features" },
+  { name: "Integrations", link: "#integrations" },
   { name: "How it works", link: "#how-it-works" },
+  { name: "Features", link: "#features" },
+  { name: "About", link: "#about" },
 ];
 
 export function SiteNavbar() {
@@ -60,7 +61,15 @@ export function SiteNavbar() {
             <a
               key={item.link}
               href={item.link}
-              onClick={() => setMobileOpen(false)}
+              onClick={(e) => {
+                if (item.link.startsWith("#")) {
+                  e.preventDefault();
+                  document
+                    .querySelector(item.link)
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+                setMobileOpen(false);
+              }}
               className="w-full px-2 py-1 text-base font-medium text-ink-muted hover:text-ink"
             >
               {item.name}

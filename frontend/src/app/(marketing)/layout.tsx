@@ -22,9 +22,11 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
             href="https://github.com/harshcodesss/MeetPilot"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-ink transition-colors"
+            className="inline-flex items-center gap-2 transition-colors hover:text-ink"
           >
-            GitHub ↗
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logos/github.svg" alt="" className="h-4 w-4" />
+            github repo
           </a>
         </div>
       </footer>
