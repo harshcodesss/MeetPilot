@@ -4,6 +4,7 @@ import { FadeIn } from "@/components/marketing/FadeIn";
 import { DemoSection } from "@/components/marketing/DemoSection";
 import { IntegrationsSection } from "@/components/marketing/IntegrationsSection";
 import { HowItWorksSection } from "@/components/marketing/HowItWorksSection";
+import { FeaturesSection } from "@/components/marketing/FeaturesSection";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import { Highlighter } from "@/components/ui/highlighter";
 import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
@@ -33,7 +34,7 @@ export default function MarketingHome() {
       <DemoSection />
       <IntegrationsSection />
       <HowItWorksSection />
-      <Features />
+      <FeaturesSection />
       <ClosingCta />
     </>
   );
@@ -105,70 +106,11 @@ function Hero() {
 }
 
 // ---------------------------------------------------------------------------
-// Features grid
+// Features — now lives in <FeaturesSection/> (marketing/).
 // ---------------------------------------------------------------------------
 
-const FEATURES = [
-  {
-    title: "Eight action handlers",
-    body:
-      "Gmail, Calendar events, deadlines, Jira tickets, Slack messages, Notion pages, Asana tasks, personal to-dos.",
-  },
-  {
-    title: "Clarifies vague tasks",
-    body:
-      "If the LLM isn't sure about a detail, it asks. Your answers flow back into the next draft attempt.",
-  },
-  {
-    title: "Deadlines, tracked",
-    body:
-      "Phrases like \"by Friday\" become real dates against the meeting's calendar context. Overdue items don't hide.",
-  },
-  {
-    title: "Confidence-scored",
-    body:
-      "Every task ships with a high / moderate / low confidence pill. Trust the greens; review the reds.",
-  },
-  {
-    title: "Human-in-the-loop",
-    body:
-      "No live sending in this version. Every draft is displayed; you copy it where it needs to go.",
-  },
-  {
-    title: "Google-only sign-in",
-    body:
-      "One button. No passwords. Identity scopes only — Gmail and Calendar tokens are deferred until live-send lands.",
-  },
-];
-
-function Features() {
-  return (
-    <section className="mx-auto max-w-5xl px-6 py-20">
-      <FadeIn>
-        <h2 className="text-center text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-          What&rsquo;s inside
-        </h2>
-      </FadeIn>
-      <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {FEATURES.map((feat, i) => (
-          <FadeIn key={feat.title} delay={(i % 3) * 0.1}>
-            <div className="h-full rounded-2xl border border-line bg-white p-5">
-              <h3 className="text-base font-semibold text-ink">
-                {feat.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-                {feat.body}
-              </p>
-            </div>
-          </FadeIn>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 // ---------------------------------------------------------------------------
-// 5. Closing CTA
+// Closing CTA
 // ---------------------------------------------------------------------------
 
 function ClosingCta() {

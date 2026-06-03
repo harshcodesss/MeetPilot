@@ -120,6 +120,7 @@ body {
   --radius-4xl: calc(var(--radius) * 2.6);
   --animate-marquee: marquee var(--duration) infinite linear;
   --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+  --animate-move: move 4s linear infinite;
   @keyframes marquee {
   from {
     transform: translateX(0);
@@ -205,6 +206,16 @@ body {
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* Sweeping scan line in <HandlersScanIllo/> — beam travels left to right. */
+@keyframes move {
+  0% {
+    left: 0;
+  }
+  100% {
+    left: 100%;
+  }
 }
 
 @keyframes cell-ripple {
