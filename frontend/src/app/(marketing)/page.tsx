@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { FadeIn } from "@/components/marketing/FadeIn";
+import { DemoSection } from "@/components/marketing/DemoSection";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import { Highlighter } from "@/components/ui/highlighter";
 import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
@@ -27,6 +28,7 @@ export default function MarketingHome() {
   return (
     <>
       <Hero />
+      <DemoSection />
       <WhatItDoes />
       <HowItWorks />
       <Features />
