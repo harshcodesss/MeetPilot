@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FadeIn } from "@/components/marketing/FadeIn";
 import { DemoSection } from "@/components/marketing/DemoSection";
 import { IntegrationsSection } from "@/components/marketing/IntegrationsSection";
+import { HowItWorksSection } from "@/components/marketing/HowItWorksSection";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import { Highlighter } from "@/components/ui/highlighter";
 import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
@@ -32,7 +33,7 @@ export default function MarketingHome() {
       <DemoSection />
       <IntegrationsSection />
       <WhatItDoes />
-      <HowItWorks />
+      <HowItWorksSection />
       <Features />
       <ClosingCta />
     </>
@@ -156,64 +157,8 @@ function WhatItDoes() {
 }
 
 // ---------------------------------------------------------------------------
-// 3. How it works — three-step flow
+// 3. How it works — now lives in <HowItWorksSection/> (marketing/).
 // ---------------------------------------------------------------------------
-
-const STEPS = [
-  {
-    n: "01",
-    title: "You meet",
-    body:
-      "Install the extension once. It auto-detects Google Meet and starts capturing captions when you click Start.",
-  },
-  {
-    n: "02",
-    title: "MeetPilot listens",
-    body:
-      "Caption lines flow into the backend in real time. When the meeting ends, extraction runs against the full transcript.",
-  },
-  {
-    n: "03",
-    title: "You approve",
-    body:
-      "Drafts land on the dashboard. Review each one, fill in missing context, mark done when you've actually sent it.",
-  },
-];
-
-function HowItWorks() {
-  return (
-    <section className="bg-surface py-20">
-      <div className="mx-auto max-w-5xl px-6">
-        <FadeIn>
-          <h2 className="text-center text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-            How it works
-          </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-ink-muted">
-            Three steps. No surprises. The AI never sends anything without
-            your explicit click.
-          </p>
-        </FadeIn>
-        <ol className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
-          {STEPS.map((step, i) => (
-            <FadeIn key={step.n} delay={i * 0.1}>
-              <li className="relative">
-                <span className="text-5xl font-bold text-primary-tint">
-                  {step.n}
-                </span>
-                <h3 className="mt-2 text-lg font-semibold text-ink">
-                  {step.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-                  {step.body}
-                </p>
-              </li>
-            </FadeIn>
-          ))}
-        </ol>
-      </div>
-    </section>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // 4. Features grid
