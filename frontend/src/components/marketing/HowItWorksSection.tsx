@@ -19,19 +19,19 @@ const STEPS: {
   {
     label: "Step 1",
     title: "Capture",
-    body: "MeetPilot reads the live captions in your Google Meet as people speak. It records no audio and uses only the text on screen.",
+    body: "A Chrome extension reads the dialogue exchanged during your Google Meet and turns it into a clean, ordered transcript.",
     illo: <CaptureIllo />,
   },
   {
     label: "Step 2",
     title: "Extract",
-    body: "When the meeting ends, MeetPilot finds every commitment, the person who owns it, and the date it is due.",
+    body: "An LLM reads the transcript and pulls out the tasks and commitments, along with the person each one is assigned to.",
     illo: <ExtractIllo />,
   },
   {
     label: "Step 3",
-    title: "Draft",
-    body: "MeetPilot turns each commitment into a draft email, calendar event, or ticket for you to review and approve.",
+    title: "Automation",
+    body: "MeetPilot drafts the follow up for every task, an email, calendar event, or ticket, ready for you to approve and send.",
     illo: <DraftIllo />,
   },
 ];
@@ -53,11 +53,11 @@ export function HowItWorksSection() {
         <div className="relative mt-12 pt-16 pb-16 lg:mt-16">
           {/* Step markers — decorative, desktop only. */}
           <div className="pointer-events-none absolute inset-0 hidden lg:block">
-            <div className="absolute top-0 left-[12%] flex items-start gap-2 text-ink-faint">
+            <div className="absolute top-0 left-[7%] flex items-start gap-2 text-ink-faint">
               <span className="mt-0.5 text-xs font-medium">Step 1</span>
               <ArrowDownRight />
             </div>
-            <div className="absolute top-0 right-[12%] flex items-start gap-2 text-ink-faint">
+            <div className="absolute top-0 right-[7%] flex items-start gap-2 text-ink-faint">
               <ArrowDownLeft />
               <span className="mt-0.5 text-xs font-medium">Step 3</span>
             </div>
