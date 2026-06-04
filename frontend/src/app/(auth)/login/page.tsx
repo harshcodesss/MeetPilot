@@ -14,8 +14,15 @@ import { LoginCarousel } from "@/components/auth/LoginCarousel";
  */
 export default function LoginPage() {
   return (
-    <div className="fixed inset-0 grid grid-cols-1 bg-white lg:grid-cols-[minmax(0,480px)_1fr]">
-      {/* Left — sign-in panel */}
+    <div className="fixed inset-0 grid grid-cols-1 bg-white lg:grid-cols-[1fr_minmax(0,480px)]">
+      {/* Left — product carousel (desktop only) */}
+      <div className="hidden p-3 lg:block">
+        <div className="h-full w-full overflow-hidden rounded-3xl">
+          <LoginCarousel />
+        </div>
+      </div>
+
+      {/* Right — sign-in panel */}
       <div className="flex h-full flex-col overflow-y-auto px-8 py-10 sm:px-14">
         {/* Brand */}
         <div className="flex items-center gap-2.5">
@@ -70,13 +77,6 @@ export default function LoginPage() {
             <ArrowLeft className="h-4 w-4" />
             Back to landing page
           </Link>
-        </div>
-      </div>
-
-      {/* Right — product carousel (desktop only) */}
-      <div className="hidden p-3 lg:block">
-        <div className="h-full w-full overflow-hidden rounded-3xl">
-          <LoginCarousel />
         </div>
       </div>
     </div>
