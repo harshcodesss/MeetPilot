@@ -130,11 +130,13 @@ export default function CalendarPage() {
         : fullDayLabel(anchor);
 
   return (
-    // Escape the AppShell's p-8 padding so the calendar runs edge-to-edge and
-    // fills the viewport — no page scroll, same footprint in every view.
-    <div className="-m-8 flex h-screen flex-col bg-surface">
-      <div className="shrink-0 bg-white">
-        <div className="px-6 pt-4 pb-3">
+    // Fit the padded content area (the shell pads pl-32/pr-8/py-8 to clear the
+    // floating dock) and frame the whole calendar as one closed card so every
+    // outer edge is bounded — no open grid edges, no viewport overflow.
+    <div className="flex h-[calc(100vh-4rem)] flex-col">
+      {/* Title + toolbar sit above, on the page — outside the framed grid. */}
+      <div className="shrink-0">
+        <div className="pb-3">
           <h1 className="text-lg font-semibold tracking-tight text-ink">
             Calendar
           </h1>
@@ -142,7 +144,7 @@ export default function CalendarPage() {
             Your deadlines, plotted before they plot against you.
           </p>
         </div>
-        <div className="border-b border-line px-6 py-3">
+        <div className="pb-4">
           <Toolbar
             label={label}
             view={view}
@@ -154,7 +156,8 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1">
+      {/* Only the calendar grid is framed as a closed card. */}
+      <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-line bg-surface">
         {view === "month" ? (
           <MonthView anchor={anchor} tasksByYmd={tasksByYmd} onOpenDay={openDay} />
         ) : view === "week" ? (

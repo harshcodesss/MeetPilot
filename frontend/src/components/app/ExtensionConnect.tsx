@@ -62,9 +62,15 @@ interface ExtensionConnectProps {
   /** When false, the internal "Get the extension" heading + blurb is hidden —
    *  used on Settings, where an outer section heading already labels it. */
   showHeading?: boolean;
+  /** When false, the compact "How to install" details is hidden — the
+   *  Extension page renders the expanded 4-step guide instead. */
+  showInstallSteps?: boolean;
 }
 
-export function ExtensionConnect({ showHeading = true }: ExtensionConnectProps) {
+export function ExtensionConnect({
+  showHeading = true,
+  showInstallSteps = true,
+}: ExtensionConnectProps) {
   const [status, setStatus] = useState<ConnectStatus>({ kind: "idle" });
   const [showPairing, setShowPairing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -163,23 +169,25 @@ export function ExtensionConnect({ showHeading = true }: ExtensionConnectProps) 
         </p>
       ) : null}
 
-      <details className="mt-6 text-sm text-ink-muted">
-        <summary className="cursor-pointer text-sm font-medium text-ink hover:text-ink-muted transition-colors">
-          How to install
-        </summary>
-        <ol className="mt-3 list-decimal space-y-1.5 pl-5">
-          <li>Unzip the downloaded file.</li>
-          <li>
-            Open{" "}
-            <code className="rounded bg-surface px-1 text-xs">
-              chrome://extensions
-            </code>
-            .
-          </li>
-          <li>Toggle “Developer mode” on (top-right corner).</li>
-          <li>Click “Load unpacked” and pick the unzipped folder.</li>
-        </ol>
-      </details>
+      {showInstallSteps ? (
+        <details className="mt-6 text-sm text-ink-muted">
+          <summary className="cursor-pointer text-sm font-medium text-ink hover:text-ink-muted transition-colors">
+            How to install
+          </summary>
+          <ol className="mt-3 list-decimal space-y-1.5 pl-5">
+            <li>Unzip the downloaded file.</li>
+            <li>
+              Open{" "}
+              <code className="rounded bg-surface px-1 text-xs">
+                chrome://extensions
+              </code>
+              .
+            </li>
+            <li>Toggle “Developer mode” on (top-right corner).</li>
+            <li>Click “Load unpacked” and pick the unzipped folder.</li>
+          </ol>
+        </details>
+      ) : null}
 
       <details
         className="mt-4 text-sm"

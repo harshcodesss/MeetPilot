@@ -68,7 +68,9 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="-mx-8 -my-8 min-h-[calc(100vh)] bg-white">
+    // Full-bleed board (top/bottom too) with a little breathing margin on
+    // both sides so it isn't jammed against the dock / viewport edge.
+    <div className="-mx-8 -my-8 min-h-[calc(100vh)] bg-white px-6">
       {pageState.status === "loading" ? (
         <div className="flex min-h-[60vh] items-center justify-center">
           <Spinner />

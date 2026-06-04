@@ -1,5 +1,5 @@
-import { ExtensionConnect } from "@/components/app/ExtensionConnect";
 import { FlipBoardHero } from "@/components/app/FlipBoardHero";
+import { InstallSteps } from "@/components/app/InstallSteps";
 
 /**
  * Extension — the permanent home for the capture-extension download + connect
@@ -16,20 +16,21 @@ const BOARD_MESSAGES = [
 
 export default function ExtensionPage() {
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
-      <FlipBoardHero messages={BOARD_MESSAGES} />
+    <div className="mx-auto max-w-5xl space-y-10">
+      {/* Hero stays in a centered narrow column. */}
+      <div className="mx-auto max-w-xl">
+        <FlipBoardHero messages={BOARD_MESSAGES} />
+      </div>
 
+      {/* Title + the install/connect flow, grouped together. */}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-ink">
           Browser extension
         </h1>
-        <p className="mt-1 text-sm text-ink-muted">
-          Install the Chrome extension and connect it to your account — your
-          next Google Meet captures itself.
-        </p>
+        <div className="mt-3">
+          <InstallSteps />
+        </div>
       </div>
-
-      <ExtensionConnect showHeading={false} />
     </div>
   );
 }
