@@ -42,15 +42,22 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=_auth_session_secret,
     same_site="lax",
-    https_only=False,
+    # Secure cookie over HTTPS in production. Set COOKIE_SECURE=true on the
+    # deployed backend; leave unset for local http dev.
+    https_only=os.environ.get("COOKIE_SECURE", "false").lower() == "true",
 )
 
-# CORS — only the Next.js frontend at :3000 is allowed (both `localhost` and
-# `127.0.0.1` loopback names). The throwaway Vite dashboard was retired in
-# Phase 10 Step D; its 5173/5174/5175 entries went with it. Still no "*";
-# still allow_credentials=False.
+# CORS — localhost:3000 stays allowed for dev (regex). Production frontend
+# origins come from the FRONTEND_ORIGINS env var (comma-separated, exact
+# match), e.g. "https://meetpilot.vercel.app". Still no "*"; still
+# allow_credentials=False (the web app + extension send a bearer token in the
+# Authorization header, not cookies).
+_frontend_origins = [
+    o.strip() for o in os.environ.get("FRONTEND_ORIGINS", "").split(",") if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=_frontend_origins,
     allow_origin_regex=r"http://(localhost|127\.0\.0\.1):3000",
     allow_methods=["*"],
     allow_headers=["*"],

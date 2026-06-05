@@ -19,7 +19,10 @@ else:
     # errors as pooled connections cycle between requests.
     connect_args = {"prepare_threshold": None}
 
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+# pool_pre_ping recycles connections that a managed Postgres (Neon) or a
+# sleeping host may have dropped between requests — avoids stale-connection
+# errors on the first hit after idle. Harmless for SQLite.
+engine = create_engine(DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
