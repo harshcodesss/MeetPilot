@@ -2,10 +2,9 @@
 
 import {
   ArrowUpRight,
-  Calendar,
   ChevronLeft,
   ChevronRight,
-  LayoutDashboard,
+  Sparkles,
   Video,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -175,16 +174,20 @@ function Onboarding() {
 // ---------------------------------------------------------------------------
 
 function Header({ user }: { user: UserOut }) {
-  const today = new Date().toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "short",
+  const now = new Date();
+  const month = now.toLocaleDateString(undefined, { month: "short" });
+  const day = now.getDate();
+  const weekday = now.toLocaleDateString(undefined, { weekday: "long" });
+  const full = now.toLocaleDateString(undefined, {
+    month: "long",
     day: "numeric",
+    year: "numeric",
   });
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div className="flex items-center gap-3.5">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-hover text-white shadow-soft">
-          <LayoutDashboard className="h-5 w-5" strokeWidth={2} />
+          <Sparkles className="h-5 w-5" strokeWidth={2} />
         </span>
         <div>
           <h1 className="text-xl font-semibold tracking-tight text-ink">
@@ -195,10 +198,23 @@ function Header({ user }: { user: UserOut }) {
           </p>
         </div>
       </div>
-      <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-3.5 py-2 text-sm font-medium text-ink-muted shadow-soft">
-        <Calendar className="h-4 w-4 text-ink-faint" strokeWidth={1.75} />
-        {today}
-      </span>
+
+      {/* Tear-off calendar chip — month strip + day number, with the weekday
+          and full date alongside. No surrounding box; the glyph carries it. */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 flex-col overflow-hidden rounded-lg border border-line">
+          <div className="bg-primary text-center text-[9px] font-bold uppercase leading-[14px] tracking-wider text-white">
+            {month}
+          </div>
+          <div className="flex flex-1 items-center justify-center text-lg font-bold leading-none text-ink">
+            {day}
+          </div>
+        </div>
+        <div className="leading-tight">
+          <div className="text-sm font-semibold text-ink">{weekday}</div>
+          <div className="text-xs text-ink-muted">{full}</div>
+        </div>
+      </div>
     </div>
   );
 }
