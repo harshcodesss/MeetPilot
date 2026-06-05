@@ -7,11 +7,15 @@
   "permissions": ["storage", "tabs", "activeTab"],
   "host_permissions": [
     "https://meet.google.com/*",
+    "https://meetpilot-api.onrender.com/*",
     "http://localhost/*"
   ],
 
   "externally_connectable": {
-    "matches": ["http://localhost:3000/*"]
+    "matches": [
+      "https://meet-pilot-brown.vercel.app/*",
+      "http://localhost:3000/*"
+    ]
   },
 
   "background": {

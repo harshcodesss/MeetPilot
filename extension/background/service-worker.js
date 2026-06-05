@@ -1,7 +1,8 @@
 'use strict';
 
-// Change before deploying; mirrors extension/shared/config.js (SW can't import it).
-const BACKEND_URL = 'http://localhost:8000';
+// Production deploy; mirrors extension/shared/config.js (SW can't import it).
+// Use http://localhost:8000 for local dev.
+const BACKEND_URL = 'https://meetpilot-api.onrender.com';
 
 // Flush when buffer reaches this many segments OR when FLUSH_INTERVAL_MS has
 // elapsed since the last flush — whichever comes first.
