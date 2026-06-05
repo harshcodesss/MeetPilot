@@ -207,13 +207,58 @@ function Header({ user }: { user: UserOut }) {
 // Stat tiles — four cards, each with a number, label, and animated 7-day bars
 // ---------------------------------------------------------------------------
 
-type StatColor = "blue" | "yellow" | "green" | "red";
+type AccentKey = "blue" | "yellow" | "green" | "red";
 
-const STAT_STROKE: Record<StatColor, string> = {
-  blue: "#1a73e8",
-  yellow: "#fbbc04",
-  green: "#34a853",
-  red: "#ea4335",
+// Per-card theming for the coloured stat cards. Blue/green/red carry white
+// content; the bright yellow card flips to dark content for contrast. `light`
+// tells the graph which palette to draw in (white vs ink).
+interface Accent {
+  card: string;
+  heading: string;
+  number: string;
+  arrow: string;
+  chip: string;
+  label: string;
+  light: boolean;
+}
+
+const ACCENT: Record<AccentKey, Accent> = {
+  blue: {
+    card: "bg-gradient-to-br from-[#1a73e8] to-[#1765cc]",
+    heading: "text-white/85",
+    number: "text-white",
+    arrow: "border-white/45 text-white group-hover:bg-white/20",
+    chip: "bg-white/15 text-white",
+    label: "text-white/75",
+    light: true,
+  },
+  yellow: {
+    card: "bg-gradient-to-br from-[#fdca2c] to-[#fbbc04]",
+    heading: "text-white/90",
+    number: "text-white",
+    arrow: "border-white/55 text-white group-hover:bg-white/20",
+    chip: "bg-white/20 text-white",
+    label: "text-white/85",
+    light: true,
+  },
+  green: {
+    card: "bg-gradient-to-br from-[#34a853] to-[#2a9248]",
+    heading: "text-white/85",
+    number: "text-white",
+    arrow: "border-white/45 text-white group-hover:bg-white/20",
+    chip: "bg-white/15 text-white",
+    label: "text-white/80",
+    light: true,
+  },
+  red: {
+    card: "bg-gradient-to-br from-[#ea4335] to-[#d33729]",
+    heading: "text-white/85",
+    number: "text-white",
+    arrow: "border-white/45 text-white group-hover:bg-white/20",
+    chip: "bg-white/15 text-white",
+    label: "text-white/80",
+    light: true,
+  },
 };
 
 function StatTiles({
@@ -273,27 +318,31 @@ function StatTiles({
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <StatTile
+        accent="blue"
         href="/meetings"
         value={stats.meetings_this_week}
         label="Meetings"
         delta={deltas.meetings}
-        graph={<WeekHeat sessions={sessions} />}
+        graph={<WeekHeat sessions={sessions} light />}
       />
       <StatTile
+        accent="yellow"
         href="/tasks"
         value={stats.tasks_this_week}
         label="Tasks"
         delta={deltas.tasks}
-        graph={<Histogram data={series.tasks} color={STAT_STROKE.yellow} />}
+        graph={<Histogram data={series.tasks} light />}
       />
       <StatTile
+        accent="green"
         href="/tasks"
         value={stats.drafts_ready}
         label="Drafted"
         delta={deltas.drafted}
-        graph={<Gauge drafted={stats.drafts_ready} total={tasks.length} />}
+        graph={<Gauge drafted={stats.drafts_ready} total={tasks.length} light />}
       />
       <StatTile
+        accent="red"
         href="/tasks"
         value={stats.action_required}
         label="Action Required"
@@ -303,6 +352,7 @@ function StatTiles({
             overdue={urgency.overdue}
             dueToday={urgency.dueToday}
             later={urgency.later}
+            light
           />
         }
       />
@@ -311,66 +361,77 @@ function StatTiles({
 }
 
 function StatTile({
+  accent,
   href,
   value,
   label,
   delta,
   graph,
 }: {
+  accent: AccentKey;
   href: string;
   value: number;
   label: string;
   delta: number;
   graph: React.ReactNode;
 }) {
+  const a = ACCENT[accent];
   return (
     <Link
       href={href}
-      className="group flex flex-col rounded-2xl border border-line bg-white p-5 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-md"
+      className={`group flex flex-col rounded-2xl p-5 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-md ${a.card}`}
     >
       {/* Row 1 — heading (left) · circular arrow (right) */}
       <div className="flex items-center justify-between gap-3">
-        <span className="truncate text-sm font-medium text-ink-muted">
+        <span className={`truncate text-sm font-medium ${a.heading}`}>
           {label}
         </span>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line text-ink transition-colors group-hover:border-primary group-hover:bg-primary group-hover:text-white">
+        <span
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors ${a.arrow}`}
+        >
           <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
         </span>
       </div>
       {/* Row 2 — big number (left) · graph (right). Fixed height + bottom
-          align so the heatmap card lines up with the sparkline cards. */}
+          align so the heatmap card lines up with the other cards. */}
       <div className="mt-3 flex h-14 items-end justify-between gap-3">
-        <span className="text-5xl font-bold leading-none tracking-tight text-ink">
+        <span
+          className={`text-5xl font-bold leading-none tracking-tight ${a.number}`}
+        >
           {value}
         </span>
         {graph}
       </div>
       {/* Row 3 — week-over-week trend */}
-      <StatTrend delta={delta} />
+      <StatTrend delta={delta} chip={a.chip} label={a.label} />
     </Link>
   );
 }
 
-// Trend footer — a coloured delta chip (▲/▼ + amount) and a caption, mirroring
-// the reference's "Increased from last month" row. Period is a week here since
-// the cards count this week's activity.
-const TREND_BADGE: Record<"up" | "down" | "flat", string> = {
-  up: "border-green/30 bg-green-bg text-green",
-  down: "border-red/30 bg-red-bg text-red",
-  flat: "border-line bg-surface text-ink-muted",
-};
+// Trend footer — a translucent delta chip (▲/▼ + amount) and a caption,
+// mirroring the reference's "Increased from last month" row. Period is a week
+// here since the cards count this week's activity. Direction is read from the
+// glyph + wording, so the chip colour can stay neutral on the coloured card.
 const TREND_LABEL: Record<"up" | "down" | "flat", string> = {
   up: "Increased from last week",
   down: "Decreased from last week",
   flat: "No change from last week",
 };
 
-function StatTrend({ delta }: { delta: number }) {
+function StatTrend({
+  delta,
+  chip,
+  label,
+}: {
+  delta: number;
+  chip: string;
+  label: string;
+}) {
   const dir = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
   return (
     <div className="mt-4 flex items-center gap-2">
       <span
-        className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-semibold ${TREND_BADGE[dir]}`}
+        className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold ${chip}`}
       >
         {dir !== "flat" && (
           <svg width="7" height="7" viewBox="0 0 8 8" aria-hidden>
@@ -382,7 +443,7 @@ function StatTrend({ delta }: { delta: number }) {
         )}
         {Math.abs(delta)}
       </span>
-      <span className="truncate text-xs text-ink-muted">{TREND_LABEL[dir]}</span>
+      <span className={`truncate text-xs ${label}`}>{TREND_LABEL[dir]}</span>
     </div>
   );
 }
@@ -390,10 +451,11 @@ function StatTrend({ delta }: { delta: number }) {
 // Last-7-days bar histogram — one bar per day, height scaled to the busiest
 // day. Bars grow in left-to-right; empty days show a faint stub. Hovering a bar
 // pops a dark tooltip (weekday + count), matching the Meetings heatmap.
-function Histogram({ data, color }: { data: number[]; color: string }) {
+function Histogram({ data, light = false }: { data: number[]; light?: boolean }) {
   const max = Math.max(1, ...data);
   const [hovered, setHovered] = useState<number | null>(null);
   const start = addDays(todayLocal(), -(data.length - 1));
+  const color = light ? "#ffffff" : "rgba(0,0,0,0.72)";
   return (
     <div className="flex h-14 w-24 shrink-0 items-end justify-between gap-1">
       {data.map((v, i) => {
@@ -432,7 +494,15 @@ function Histogram({ data, color }: { data: number[]; color: string }) {
 // Semicircle progress gauge (PieChart.png) — a 180° arc with a light track for
 // the whole, a green fill for the drafted share, and the drafted/total
 // percentage in the centre. The fill sweeps in on load.
-function Gauge({ drafted, total }: { drafted: number; total: number }) {
+function Gauge({
+  drafted,
+  total,
+  light = false,
+}: {
+  drafted: number;
+  total: number;
+  light?: boolean;
+}) {
   const frac = total > 0 ? Math.min(drafted / total, 1) : 0;
   const pct = Math.round(frac * 100);
 
@@ -444,13 +514,17 @@ function Gauge({ drafted, total }: { drafted: number; total: number }) {
   const SPAN = 180; // sweep over the top to the right end
   const end = START + frac * SPAN;
 
+  const track = light ? "rgba(255,255,255,0.3)" : "#e6eaef";
+  const fill = light ? "#ffffff" : "#34a853";
+  const pctFill = light ? "rgba(255,255,255,0.95)" : "var(--color-ink-muted)";
+
   return (
     <svg viewBox="0 0 100 60" className="h-14 w-24 shrink-0">
       {/* Track — the full semicircle (remaining = not drafted) */}
       <path
         d={arcPath(CX, CY, R, START, START + SPAN)}
         fill="none"
-        stroke="#e6eaef"
+        stroke={track}
         strokeWidth={SW}
         strokeLinecap="round"
       />
@@ -459,7 +533,7 @@ function Gauge({ drafted, total }: { drafted: number; total: number }) {
         <motion.path
           d={arcPath(CX, CY, R, START, end)}
           fill="none"
-          stroke="#34a853"
+          stroke={fill}
           strokeWidth={SW}
           strokeLinecap="round"
           initial={{ pathLength: 0 }}
@@ -474,7 +548,7 @@ function Gauge({ drafted, total }: { drafted: number; total: number }) {
         textAnchor="middle"
         fontSize="17"
         fontWeight={600}
-        fill="var(--color-ink-muted)"
+        fill={pctFill}
       >
         {pct}%
       </text>
@@ -514,15 +588,19 @@ function UrgencyBars({
   overdue,
   dueToday,
   later,
+  light = false,
 }: {
   overdue: number;
   dueToday: number;
   later: number;
+  light?: boolean;
 }) {
+  // On a coloured card the three rows are distinguished by opacity (urgency
+  // fades down the list); off-card they keep their semantic red/amber/slate.
   const rows = [
-    { label: "Overdue", color: "#ea4335", count: overdue },
-    { label: "Today", color: "#fbbc04", count: dueToday },
-    { label: "Later", color: "#94a3b8", count: later },
+    { label: "Overdue", color: "#ea4335", count: overdue, fade: 1 },
+    { label: "Today", color: "#fbbc04", count: dueToday, fade: 0.7 },
+    { label: "Later", color: "#94a3b8", count: later, fade: 0.45 },
   ];
   const max = Math.max(1, ...rows.map((r) => r.count));
 
@@ -530,19 +608,34 @@ function UrgencyBars({
     <div className="flex w-28 shrink-0 flex-col justify-center gap-1.5">
       {rows.map((r, i) => (
         <div key={r.label} className="flex items-center gap-1.5">
-          <span className="w-9 text-[9px] font-medium text-ink-muted">
+          <span
+            className={`w-9 text-[9px] font-medium ${
+              light ? "text-white/85" : "text-ink-muted"
+            }`}
+          >
             {r.label}
           </span>
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/[0.06]">
+          <div
+            className={`h-1.5 flex-1 overflow-hidden rounded-full ${
+              light ? "bg-white/20" : "bg-black/[0.06]"
+            }`}
+          >
             <motion.div
               className="h-full rounded-full"
-              style={{ backgroundColor: r.color }}
+              style={{
+                backgroundColor: light ? "#ffffff" : r.color,
+                opacity: light ? r.fade : 1,
+              }}
               initial={{ width: 0 }}
               animate={{ width: `${(r.count / max) * 100}%` }}
               transition={{ duration: 0.6, delay: 0.15 + i * 0.1, ease: "easeOut" }}
             />
           </div>
-          <span className="w-2 text-right text-[10px] font-semibold tabular-nums text-ink">
+          <span
+            className={`w-2 text-right text-[10px] font-semibold tabular-nums ${
+              light ? "text-white" : "text-ink"
+            }`}
+          >
             {r.count}
           </span>
         </div>
@@ -553,7 +646,13 @@ function UrgencyBars({
 
 // Weekly heat strip — last 7 days as evenly spaced day squares with weekday
 // initials, coloured by meeting count. Sits in the Meetings card's graph slot.
-function WeekHeat({ sessions }: { sessions: Session[] }) {
+function WeekHeat({
+  sessions,
+  light = false,
+}: {
+  sessions: Session[];
+  light?: boolean;
+}) {
   const days = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const s of sessions) {
@@ -589,9 +688,15 @@ function WeekHeat({ sessions }: { sessions: Session[] }) {
             </span>
           ) : null}
           <span
-            className={`h-7 w-full cursor-pointer rounded-sm shadow-sm transition-all hover:scale-125 hover:ring-2 hover:ring-primary/40 ${heatClass(day.count)}`}
+            className={`h-7 w-full cursor-pointer rounded-sm shadow-sm transition-all hover:scale-125 hover:ring-2 ${
+              light ? "hover:ring-white/60" : "hover:ring-primary/40"
+            } ${heatClass(day.count, light)}`}
           />
-          <span className="text-[8px] font-medium leading-none text-ink-faint">
+          <span
+            className={`text-[8px] font-medium leading-none ${
+              light ? "text-white/70" : "text-ink-faint"
+            }`}
+          >
             {day.initial}
           </span>
         </div>
@@ -600,7 +705,13 @@ function WeekHeat({ sessions }: { sessions: Session[] }) {
   );
 }
 
-function heatClass(count: number): string {
+function heatClass(count: number, light = false): string {
+  if (light) {
+    if (count <= 0) return "bg-white/20";
+    if (count === 1) return "bg-white/45";
+    if (count === 2) return "bg-white/70";
+    return "bg-white";
+  }
   if (count <= 0) return "bg-black/[0.06]";
   if (count === 1) return "bg-primary/40";
   if (count === 2) return "bg-primary/70";
