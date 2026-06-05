@@ -90,6 +90,15 @@ export function AppDock() {
         // box (overflow visible); only the box height changes with the stack.
         className="flex w-16 flex-col items-center gap-3 rounded-[28px] border border-gray-200 bg-white/90 py-4 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.25)] backdrop-blur-md"
       >
+        {/* Brand — click returns to the landing page */}
+        <Link href="/" aria-label="MeetPilot home" className="group/logo">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-900 text-lg font-bold text-white transition-transform group-hover/logo:scale-110">
+            M
+          </span>
+        </Link>
+
+        <div className="h-px w-7 bg-gray-200" />
+
         {/* Nav icons */}
         {NAV_ITEMS.map((item) => (
           <DockIcon

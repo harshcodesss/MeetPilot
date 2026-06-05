@@ -13,6 +13,7 @@ import {
   NavBody,
   NavItems,
 } from "@/components/ui/resizable-navbar";
+import { useAuthToken } from "@/lib/auth-hook";
 
 /**
  * The marketing site's top navigation — a resizable, scroll-aware pill that
@@ -32,6 +33,9 @@ const NAV_LINKS = [
 
 export function SiteNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Already signed in? Skip the login page and go straight to the dashboard.
+  const token = useAuthToken();
+  const ctaHref = token ? "/dashboard" : "/login";
 
   return (
     <Navbar className="top-4">
@@ -40,7 +44,7 @@ export function SiteNavbar() {
         <NavbarLogo />
         <NavItems items={NAV_LINKS} />
         <div className="relative z-20 flex items-center gap-2">
-          <NavbarButton href="/login" variant="dark">
+          <NavbarButton href={ctaHref} variant="dark">
             Get Started
           </NavbarButton>
         </div>
@@ -76,7 +80,7 @@ export function SiteNavbar() {
             </a>
           ))}
           <NavbarButton
-            href="/login"
+            href={ctaHref}
             variant="dark"
             className="mt-2 w-full"
             onClick={() => setMobileOpen(false)}

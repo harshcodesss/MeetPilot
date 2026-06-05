@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { FadeIn } from "@/components/marketing/FadeIn";
+import { GetStartedLink } from "@/components/marketing/GetStartedLink";
 import { DemoSection } from "@/components/marketing/DemoSection";
 import { IntegrationsSection } from "@/components/marketing/IntegrationsSection";
 import { HowItWorksSection } from "@/components/marketing/HowItWorksSection";
@@ -87,7 +86,7 @@ function Hero() {
         </FadeIn>
         <FadeIn delay={0.2}>
           <div className="mt-10 flex justify-center">
-            <Link href="/login" className="inline-block">
+            <GetStartedLink className="inline-block">
               <HoverBorderGradient
                 as="span"
                 className="flex items-center gap-2 px-7 py-3 text-base font-medium"
@@ -95,7 +94,7 @@ function Hero() {
                 Get Started
                 <span aria-hidden>→</span>
               </HoverBorderGradient>
-            </Link>
+            </GetStartedLink>
           </div>
         </FadeIn>
         <FadeIn delay={0.3}>
@@ -133,13 +132,10 @@ function ClosingCta() {
           </p>
         </FadeIn>
         <FadeIn delay={0.2}>
-          <Link
-            href="/login"
-            className="mt-10 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-base font-medium text-neutral-900 transition-colors hover:bg-neutral-200"
-          >
+          <GetStartedLink className="mt-10 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-base font-medium text-neutral-900 transition-colors hover:bg-neutral-200">
             Get Started
             <span aria-hidden>→</span>
-          </Link>
+          </GetStartedLink>
         </FadeIn>
       </div>
     </section>
