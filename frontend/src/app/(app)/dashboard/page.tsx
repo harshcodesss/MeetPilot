@@ -152,7 +152,7 @@ const ONBOARDING_MESSAGES = [
 
 function Onboarding() {
   return (
-    <section className="mx-auto max-w-5xl space-y-10">
+    <section className="mx-auto max-w-7xl space-y-10">
       {/* Hero stays in a centered narrow column (mirrors the Extension page). */}
       <div className="mx-auto max-w-xl">
         <FlipBoardHero messages={ONBOARDING_MESSAGES} />

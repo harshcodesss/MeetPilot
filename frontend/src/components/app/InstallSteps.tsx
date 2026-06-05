@@ -20,12 +20,12 @@ import { getToken } from "@/lib/auth";
 
 /**
  * The Extension page's install + connect guide, expressed entirely as boxes:
- * four connected step cards (download → open extensions → enable dev mode →
- * load unpacked) plus a fifth "alternative" card carrying the manual pairing
- * code for when the popup auto-connect won't cooperate. The download button,
- * the chrome:// link, and the pairing code all live inside their boxes; steps
- * three and four carry small looping animations. Card + dashed-arrow design
- * follows the marketing how-it-works cards and the arrow_connection reference.
+ * five equal step cards in a single row — download → open extensions → enable
+ * dev mode → load unpacked → paste token — joined by dashed arrows. Each card
+ * owns its control (download button, chrome:// copy field, the two looping
+ * animations, and the token + copy button). The cards flex evenly so the row
+ * fits the container with no sideways scroll. Card design follows the marketing
+ * how-it-works cards and the arrow_connection reference.
  */
 const STEPS: { icon: LucideIcon; title: string; body: ReactNode }[] = [
   {
@@ -76,6 +76,18 @@ const STEPS: { icon: LucideIcon; title: string; body: ReactNode }[] = [
       </>
     ),
   },
+  {
+    icon: KeyRound,
+    title: "Paste your token",
+    body: (
+      <>
+        <p className="text-[13px] leading-relaxed text-ink-muted">
+          Copy this token into the extension popup to connect it.
+        </p>
+        <TokenField />
+      </>
+    ),
+  },
 ];
 
 export function InstallSteps() {
@@ -83,14 +95,20 @@ export function InstallSteps() {
     <section>
       <h2 className="text-base font-medium text-ink">How to install</h2>
       <p className="mt-1 text-sm text-ink-muted">
-        Four quick steps — about a minute, start to finish.
+        Five quick steps — about a minute, start to finish.
       </p>
 
-      {/* Desktop — a single row joined by dashed arrow connectors. */}
+      {/* Desktop — one row of equal cards joined by dashed arrows. Cards
+          flex-1 + min-w-0 so five share the row without overflowing. */}
       <div className="mt-5 hidden items-stretch lg:flex">
         {STEPS.map((step, i) => (
           <div key={step.title} className="contents">
-            <StepCard step={i + 1} icon={step.icon} title={step.title} className="flex-1">
+            <StepCard
+              step={i + 1}
+              icon={step.icon}
+              title={step.title}
+              className="min-w-0 flex-1"
+            >
               {step.body}
             </StepCard>
             {i < STEPS.length - 1 ? <Connector /> : null}
@@ -106,9 +124,6 @@ export function InstallSteps() {
           </StepCard>
         ))}
       </div>
-
-      {/* Box 5 — the alternative path: pair manually with a code. */}
-      <PairingBox />
     </section>
   );
 }
@@ -130,8 +145,8 @@ function StepCard({
     <div
       className={`flex flex-col rounded-2xl border border-line bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${className}`}
     >
-      <div className="flex items-center justify-between">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-tint text-primary">
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-tint text-primary">
           <Icon className="h-5 w-5" strokeWidth={1.75} />
         </span>
         <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
@@ -145,7 +160,7 @@ function StepCard({
 }
 
 // ---------------------------------------------------------------------------
-// Box contents — download, copy field, pairing code
+// Box contents — download, copy field, token field
 // ---------------------------------------------------------------------------
 
 function DownloadButton() {
@@ -153,9 +168,9 @@ function DownloadButton() {
     <a
       href={`${API_BASE_URL}/static/meetpilot-extension.zip`}
       download
-      className="mt-auto inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover"
+      className="mt-auto flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-hover"
     >
-      <Download className="h-4 w-4" />
+      <Download className="h-3.5 w-3.5 shrink-0" />
       Download (.zip)
     </a>
   );
@@ -177,7 +192,7 @@ function CopyField({ value }: { value: string }) {
     <button
       type="button"
       onClick={copy}
-      className="mt-auto flex items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-left transition-colors hover:bg-white"
+      className="mt-auto flex w-full items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-left transition-colors hover:bg-white"
     >
       <code className="truncate text-xs text-ink">{value}</code>
       {copied ? (
@@ -189,7 +204,10 @@ function CopyField({ value }: { value: string }) {
   );
 }
 
-function PairingBox() {
+// Step 5's control — the bearer token with a copy button. The token is
+// truncated (the copy button grabs the full value), so the field never widens
+// the card or forces sideways scroll.
+function TokenField() {
   const [copied, setCopied] = useState(false);
   const bearer = getToken();
 
@@ -198,47 +216,32 @@ function PairingBox() {
     try {
       await navigator.clipboard.writeText(bearer);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 1500);
     } catch {
-      // Fall back silently — the code is shown for manual select.
+      // Clipboard may be unavailable on non-HTTPS / older browsers.
     }
   }
 
   return (
-    <div className="mt-6 rounded-2xl border border-dashed border-line bg-surface p-5">
-      <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-ink-muted shadow-sm">
-          <KeyRound className="h-5 w-5" strokeWidth={1.75} />
-        </span>
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-ink">
-              Having trouble connecting?
-            </h3>
-            <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint shadow-sm">
-              Alternative
-            </span>
-          </div>
-          <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
-            Pair manually: copy this code and paste it into the extension
-            popup’s token box.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 flex items-center gap-2">
-        <code className="block flex-1 break-all rounded-lg border border-line bg-white p-3 text-xs text-ink">
-          {bearer ?? "(sign in to see your pairing code)"}
+    <div className="mt-auto flex w-full items-stretch gap-2">
+      <div className="flex min-w-0 flex-1 items-center rounded-lg border border-line bg-surface px-3">
+        <code className="w-full truncate text-xs text-ink">
+          {bearer ?? "Sign in for token"}
         </code>
-        <button
-          type="button"
-          onClick={copy}
-          disabled={!bearer}
-          className="shrink-0 rounded-md border border-line bg-white px-3 py-2 text-xs font-medium text-ink transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {copied ? "Copied!" : "Copy"}
-        </button>
       </div>
+      <button
+        type="button"
+        onClick={copy}
+        disabled={!bearer}
+        aria-label="Copy token"
+        className="flex shrink-0 items-center justify-center rounded-lg border border-line bg-white px-2.5 py-2 text-ink transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {copied ? (
+          <Check className="h-4 w-4 text-green" />
+        ) : (
+          <Copy className="h-4 w-4 text-ink-faint" />
+        )}
+      </button>
     </div>
   );
 }
@@ -258,7 +261,7 @@ function ToggleAnim() {
   return (
     <div className="mt-auto flex items-center gap-2.5">
       <motion.span
-        className="relative inline-flex h-6 w-11 items-center rounded-full px-0.5"
+        className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full px-0.5"
         animate={{ backgroundColor: ["#dadce0", "#1a73e8", "#1a73e8", "#dadce0"] }}
         transition={timing}
       >
@@ -268,7 +271,9 @@ function ToggleAnim() {
           transition={timing}
         />
       </motion.span>
-      <span className="text-xs font-medium text-ink-muted">Developer mode</span>
+      <span className="truncate text-xs font-medium text-ink-muted">
+        Developer mode
+      </span>
     </div>
   );
 }
@@ -299,21 +304,22 @@ function LoadUnpackedAnim() {
 
 // ---------------------------------------------------------------------------
 // Dashed horizontal connector with an arrowhead — joins adjacent step cards.
+// Slim so five cards still fit the row.
 // ---------------------------------------------------------------------------
 
 function Connector() {
   return (
-    <div className="flex w-12 shrink-0 items-center justify-center">
-      <svg width="44" height="16" viewBox="0 0 44 16" fill="none" className="text-ink-faint" aria-hidden>
+    <div className="flex w-12 shrink-0 items-center justify-center self-center">
+      <svg width="24" height="16" viewBox="0 0 24 16" fill="none" className="text-ink-faint" aria-hidden>
         <path
-          d="M2 8H35"
+          d="M2 8H17"
           stroke="currentColor"
           strokeWidth="1.5"
           strokeDasharray="4 4"
           strokeLinecap="round"
         />
         <path
-          d="M31 3l8 5-8 5"
+          d="M14 3l5 5-5 5"
           stroke="currentColor"
           strokeWidth="1.5"
           strokeLinecap="round"

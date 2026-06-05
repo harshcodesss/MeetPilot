@@ -16,7 +16,7 @@ const BOARD_MESSAGES = [
 
 export default function ExtensionPage() {
   return (
-    <div className="mx-auto max-w-5xl space-y-10">
+    <div className="mx-auto max-w-7xl space-y-10">
       {/* Hero stays in a centered narrow column. */}
       <div className="mx-auto max-w-xl">
         <FlipBoardHero messages={BOARD_MESSAGES} />
