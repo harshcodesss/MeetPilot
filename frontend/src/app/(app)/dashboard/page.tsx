@@ -12,8 +12,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import { ExtensionConnect } from "@/components/app/ExtensionConnect";
 import { FlipBoardHero } from "@/components/app/FlipBoardHero";
+import { InstallSteps } from "@/components/app/InstallSteps";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
@@ -152,19 +152,25 @@ const ONBOARDING_MESSAGES = [
 
 function Onboarding() {
   return (
-    <section className="mx-auto max-w-2xl space-y-6">
-      <FlipBoardHero messages={ONBOARDING_MESSAGES} />
+    <section className="mx-auto max-w-5xl space-y-10">
+      {/* Hero stays in a centered narrow column (mirrors the Extension page). */}
+      <div className="mx-auto max-w-xl">
+        <FlipBoardHero messages={ONBOARDING_MESSAGES} />
+      </div>
+
+      {/* Title + the install/connect flow, grouped together. */}
       <div>
-        <h2 className="text-lg font-semibold text-ink">
-          Let’s get you set up 👋
+        <h2 className="text-2xl font-semibold tracking-tight text-ink">
+          Let’s get you set up
         </h2>
         <p className="mt-1 text-sm text-ink-muted">
-          Install the MeetPilot extension and connect it to your account, then
-          your next Google Meet gets captured automatically and this page fills
-          up with your meetings and tasks.
+          Install the MeetPilot extension and connect it to your account — your
+          next Google Meet captures itself and this page fills up.
         </p>
+        <div className="mt-3">
+          <InstallSteps />
+        </div>
       </div>
-      <ExtensionConnect showHeading={false} />
     </section>
   );
 }
