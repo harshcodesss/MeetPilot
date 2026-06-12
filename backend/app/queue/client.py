@@ -15,6 +15,9 @@ q = Queue(connection=redis_connection)
 
 
 def enqueue_extract(session_id):
+    """Enqueue the extraction job for a completed session. Called by
+    `/session/{id}/complete` — the API never does AI work inline.
+    """
     return q.enqueue("app.queue.worker.extract", session_id)
 
 

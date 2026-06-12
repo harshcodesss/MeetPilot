@@ -26,6 +26,13 @@ MIN_TRANSCRIPT_WORDS = 5
 
 
 def extract(session_id):
+    """Worker job: turn a completed session's transcript into drafted tasks.
+
+    Builds the ordered transcript, runs LLM extraction (skipping
+    near-empty transcripts), replaces any prior tasks for the session
+    (delete-and-replace idempotency), then runs the S4 drafting pass
+    over the fresh tasks.
+    """
     db = SessionLocal()
     try:
         transcript, started_at, segment_count = build_transcript(db, session_id)
@@ -128,6 +135,12 @@ _VALID_DRAFT_TASK_STATES = {"answered", "drafted"}
 
 
 def draft_task(task_id):
+    """Worker job: re-draft a single task after the user submits answers.
+
+    Guards on draft_state ("answered" or "drafted" only) so a stale or
+    premature retry can't produce a junk draft, then delegates to the
+    shared draft_one_task path with the persisted answers.
+    """
     db = SessionLocal()
     try:
         task = db.get(TaskDB, task_id)
