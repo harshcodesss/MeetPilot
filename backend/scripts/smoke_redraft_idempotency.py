@@ -128,14 +128,14 @@ def main() -> int:
 
         # Assertion 3: questions UNCHANGED.
         if task.questions == ORIGINAL_QUESTIONS:
-            print(f"  ✓ questions unchanged")
+            print("  ✓ questions unchanged")
         else:
             print(f"  ✗ questions mutated: got {task.questions!r}")
             failures += 1
 
         # Assertion 4: answers UNCHANGED.
         if task.answers == ORIGINAL_ANSWERS:
-            print(f"  ✓ answers unchanged")
+            print("  ✓ answers unchanged")
         else:
             print(f"  ✗ answers mutated: got {task.answers!r}")
             failures += 1
@@ -145,7 +145,7 @@ def main() -> int:
         new_subject = new_draft.get("subject", "")
         new_body = new_draft.get("body", "")
         if OLD_MARKER not in (new_subject + new_body):
-            print(f"  ✓ draft overwritten — OLD marker removed")
+            print("  ✓ draft overwritten — OLD marker removed")
             print(f"    new subject: {new_subject!r}")
         else:
             print(f"  ✗ draft NOT overwritten — OLD marker still present: {new_draft!r}")

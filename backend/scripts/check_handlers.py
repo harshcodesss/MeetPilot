@@ -256,7 +256,7 @@ def main() -> int:
         print(f"  source deadline: raw={task.deadline_raw!r}, date={task.deadline_date}")
         print(f"{'-' * 80}")
         if isinstance(result, DraftResult):
-            print(f"  result: DRAFT")
+            print("  result: DRAFT")
             print(json.dumps(result.fields, indent=2, default=str))
         elif isinstance(result, QuestionsResult):
             print(f"  result: QUESTIONS ({len(result.questions)})")

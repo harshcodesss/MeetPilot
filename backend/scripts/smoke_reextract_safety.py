@@ -148,7 +148,7 @@ def main() -> int:
         a_still_there = db.get(TaskDB, TASK_A_ID)
         b_still_there = db.get(TaskDB, TASK_B_ID)
         if a_still_there is None and b_still_there is None:
-            print(f"  ✓ pre-seeded tasks wiped (both task_ids gone)")
+            print("  ✓ pre-seeded tasks wiped (both task_ids gone)")
         else:
             print(f"  ✗ pre-seeded task survived: "
                   f"a={'gone' if a_still_there is None else 'STILL HERE'}, "
@@ -162,7 +162,7 @@ def main() -> int:
             .all()
         )
         if len(new_tasks) == 1:
-            print(f"  ✓ exactly 1 new task row (stub returned 1 task)")
+            print("  ✓ exactly 1 new task row (stub returned 1 task)")
         else:
             print(f"  ✗ wrong task count after re-extract: {len(new_tasks)} (expected 1)")
             failures += 1
@@ -179,7 +179,7 @@ def main() -> int:
 
             # Assertion 4: answers wiped (Decision 1 — re-extract wipes S4 state).
             if t.answers is None:
-                print(f"  ✓ answers wiped (None) — Decision 1 behavior held")
+                print("  ✓ answers wiped (None) — Decision 1 behavior held")
             else:
                 print(f"  ✗ answers survived: {t.answers!r}")
                 failures += 1
@@ -193,12 +193,12 @@ def main() -> int:
                     print(f"  ✗ OLD marker leaked into new draft: {t.draft!r}")
                     failures += 1
             else:
-                print(f"  ✗ new task has no draft (drafting pass didn't run)")
+                print("  ✗ new task has no draft (drafting pass didn't run)")
                 failures += 1
 
             # Assertion 6: state is 'drafted' (synthetic task is high-conf, must draft).
             if t.draft_state == "drafted":
-                print(f"  ✓ new task at draft_state='drafted'")
+                print("  ✓ new task at draft_state='drafted'")
             else:
                 print(f"  ✗ unexpected draft_state: {t.draft_state!r}")
                 failures += 1

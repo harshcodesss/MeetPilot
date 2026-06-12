@@ -116,7 +116,7 @@ def main() -> int:
         print("=" * 80)
         print(f"  draft_state = {task.draft_state!r}")
         print(f"  handler     = {task.handler!r}")
-        print(f"  draft:")
+        print("  draft:")
         print(json.dumps(task.draft, indent=2, default=str))
         print("=" * 80)
 

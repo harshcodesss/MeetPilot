@@ -169,7 +169,7 @@ def main() -> int:
 
         print("\n" + "=" * 80)
         if failures == 0:
-            print(f"  ✓ all 6 checks passed")
+            print("  ✓ all 6 checks passed")
         else:
             print(f"  ✗ {failures} check(s) failed")
         return 0 if failures == 0 else 1
