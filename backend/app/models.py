@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import Boolean, Column, String, Integer, Date, DateTime, ForeignKey, UniqueConstraint, JSON, func
 from sqlalchemy.orm import relationship

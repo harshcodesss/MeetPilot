@@ -10,7 +10,6 @@ Run from backend/:
     ./.venv/bin/python scripts/smoke_envelope_schema.py
 """
 
-import json
 import os
 import sys
 from typing import Generic, Literal, Optional, TypeVar
