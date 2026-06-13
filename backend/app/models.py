@@ -74,6 +74,7 @@ class SegmentDB(Base):
         UniqueConstraint("session_id", "seq", name="uq_segment_session_seq"),
     )
 
+
 class TaskDB(Base):
     __tablename__ = "tasks"
 
