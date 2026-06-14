@@ -117,6 +117,7 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)):
+    """Return the signed-in user's identity (id, email, display name)."""
     return user
 
 
