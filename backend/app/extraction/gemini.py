@@ -41,6 +41,7 @@ class GeminiProvider(ExtractionProvider):
         self._client = genai.Client(api_key=api_key)
 
     def extract(self, transcript: str, started_at: datetime) -> list[Task]:
+        """Run extraction on a transcript, retrying once on validation failure."""
         prompt = build_prompt(transcript, started_at)
 
         try:
