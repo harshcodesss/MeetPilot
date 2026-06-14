@@ -100,10 +100,10 @@ def draft_one_task(
 
     handler = _HANDLERS.get(handler_name)
     if handler is None:
-        # Router returned e.g. "notion" but Task 4 hasn't shipped that handler
-        # yet. Treat as manual route for now; Phase A Task 4 fills the rest.
+        # All eight router outcomes are registered above; this is a defensive
+        # fallback for an unexpected handler name. Treat as a manual route.
         logger.info(
-            "handler not registered (Phase A): task=%s name=%s — skipping",
+            "handler not registered: task=%s name=%s — skipping",
             task.task_id, handler_name,
         )
         return
