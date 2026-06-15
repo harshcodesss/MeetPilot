@@ -33,7 +33,6 @@ export function TranscriptView({
     | { status: "error"; message: string }
   >({ status: "loading" });
 
-  /* eslint-disable-next-line react-hooks/set-state-in-effect */
   useEffect(() => {
     let cancelled = false;
     setState({ status: "loading" });

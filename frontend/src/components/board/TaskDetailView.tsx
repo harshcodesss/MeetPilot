@@ -38,7 +38,6 @@ export function TaskDetailView({ task, onBack, onTaskUpdated }: TaskDetailViewPr
   const [segments, setSegments] = useState<SourceSegment[] | null>(null);
   const [segmentsError, setSegmentsError] = useState<string | null>(null);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     let cancelled = false;
     api
@@ -65,7 +64,6 @@ export function TaskDetailView({ task, onBack, onTaskUpdated }: TaskDetailViewPr
     // task_id is what drives the refetch; onTaskUpdated is stable enough.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task.task_id]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   async function toggleDone() {
     if (busy) return;
