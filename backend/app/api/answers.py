@@ -54,6 +54,12 @@ def submit_answers(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Accept user answers to a handler's clarifying questions and re-enqueue drafting.
+
+    Validates ownership, state, and question-id membership; persists answers;
+    flips draft_state to 'answered'; then enqueues draft_task. See module
+    docstring for the full Decision 7 persistence-before-enqueue rationale.
+    """
     task = _require_owned_task(task_id, user, db)
 
     if task.draft_state != "awaiting_answers":
