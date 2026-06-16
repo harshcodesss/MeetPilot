@@ -25,6 +25,11 @@ _client: genai.Client | None = None
 
 
 def _get_client() -> genai.Client:
+    """Return the module-level Gemini client, initializing it on first call.
+
+    Lazy init keeps module import side-effect-free — the client is only built
+    when a handler actually needs it, not at import time.
+    """
     global _client
     if _client is None:
         load_dotenv()
