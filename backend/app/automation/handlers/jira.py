@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-# pyrefly: ignore [missing-import]
 from pydantic import BaseModel, Field
 
 from app.automation.base import (

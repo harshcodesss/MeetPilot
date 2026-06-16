@@ -1,7 +1,6 @@
 from datetime import date
 from enum import Enum
 
-# pyrefly: ignore [missing-import]
 from pydantic import BaseModel
 
 
