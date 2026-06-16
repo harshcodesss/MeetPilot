@@ -37,9 +37,12 @@ _SLACK_KEYWORDS = ("slack", "channel", "dm ")
 
 
 def _is_self_assignee(assignee: str, display_name: str) -> bool:
-    # Case-insensitive: Gemini occasionally re-capitalizes the speaker name
-    # ("Harsh Rathi" vs "harsh Rathi"); ingest stores the user's display_name
-    # verbatim. Compare lowered + stripped to avoid false misroutes.
+    """Return True if `assignee` refers to the meeting owner.
+
+    Case-insensitive comparison: Gemini occasionally re-capitalises the speaker
+    name ("Harsh Rathi" vs "harsh Rathi"); ingest stores display_name verbatim.
+    Strip + lower on both sides avoids false misroutes from capitalisation drift.
+    """
     return (assignee or "").strip().lower() == (display_name or "").strip().lower()
 
 
