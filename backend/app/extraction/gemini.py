@@ -54,6 +54,12 @@ class GeminiProvider(ExtractionProvider):
             return self._call_and_validate(prompt)
 
     def _call_and_validate(self, prompt: str) -> list[Task]:
+        """Make one Gemini structured-output call and validate the response.
+
+        Requests JSON constrained to the Task schema, then validates the raw
+        text through the shared TypeAdapter. Raises ValidationError if the
+        model's output does not conform; the caller decides whether to retry.
+        """
         response = self._client.models.generate_content(
             model=GEMINI_MODEL,
             contents=prompt,
