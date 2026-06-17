@@ -39,6 +39,7 @@ STATS_WINDOW_DAYS = 7
 
 
 class StatsOut(BaseModel):
+    """Response model for `/me/stats` — the four dashboard top-row counters."""
     meetings_this_week: int
     tasks_this_week: int
     drafts_ready: int
@@ -247,6 +248,7 @@ def list_task_deadlines(
 
 
 class SessionListItem(BaseModel):
+    """One row of the `/me/sessions` Meetings list, with per-session badge counts."""
     session_id: str
     started_at: datetime
     status: str
@@ -363,6 +365,7 @@ class SessionEntry(BaseModel):
 
 
 class SessionAndTasksOut(BaseModel):
+    """Response model for `/me/sessions/{id}` — a session plus its tasks."""
     session: SessionEntry
     tasks: list[TaskOut]
 
