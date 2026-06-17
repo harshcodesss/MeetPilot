@@ -85,6 +85,7 @@ class TaskDetailOut(TaskOut):
 # ---------------------------------------------------------------------------
 
 class DoneIn(BaseModel):
+    """Request body for `PATCH /tasks/{id}/done` — the desired completion flag."""
     is_done: bool
 
 
@@ -117,6 +118,7 @@ PlacementUserValue = Literal["main_list", "suggested", "dismissed"]
 
 
 class PlacementIn(BaseModel):
+    """Request body for `PATCH /tasks/{id}/placement` — the target placement value."""
     placement: PlacementUserValue
 
 
