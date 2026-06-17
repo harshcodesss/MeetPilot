@@ -35,10 +35,12 @@ router = APIRouter()
 
 
 class AnswersIn(BaseModel):
+    """Request body for submitting answers — a question-id → answer-text map."""
     answers: dict[str, str]
 
 
 class AnswersAccepted(BaseModel):
+    """Response confirming answers were accepted, with the task's new draft state."""
     task_id: str
     draft_state: str
 
