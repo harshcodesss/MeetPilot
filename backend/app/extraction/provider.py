@@ -22,6 +22,7 @@ class DummyProvider(ExtractionProvider):
     the real Gemini implementation lands. Always returns one fixed task."""
 
     def extract(self, transcript: str, started_at: datetime) -> list[Task]:
+        """Ignore the inputs and return one fixed task, proving the wiring works."""
         return [
             Task(
                 assignee="Test User",
