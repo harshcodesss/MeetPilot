@@ -2,7 +2,7 @@
 for the manual route), based only on S3's `type` field plus simple
 heuristics on `action` text and assignee. No LLM call.
 
-# v1 routing is deliberately cheap and brittle, not robust.
+v1 routing is deliberately cheap and brittle, not robust.
 
 This is the right shape of router for the v1 budget, not for production.
 Documented brittlenesses (per docs/Subsystem4_Task_Plan.md, Underspecified
