@@ -88,6 +88,11 @@ class GmailHandler(ActionHandler):
         context: MeetingContext,
         answers: Optional[dict[str, str]] = None,
     ) -> DraftResult | QuestionsResult:
+        """Draft the email subject/body, or ask clarifying questions first.
+
+        Whatever Gemini returns, the recipient is forced blank before the
+        draft is handed back — never guess an address (locked by CLAUDE.md).
+        """
         ceiling = question_ceiling_for(task.confidence)
         is_answer_mode = answers is not None
         prompt = GMAIL_DRAFT_PROMPT.format(
