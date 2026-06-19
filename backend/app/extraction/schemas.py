@@ -5,6 +5,8 @@ from pydantic import BaseModel
 
 
 class TaskType(str, Enum):
+    """Kind of follow-up a commitment implies — drives S4 handler routing."""
+
     EMAIL = "email"
     SCHEDULING = "scheduling"
     DOCUMENT = "document"
@@ -12,12 +14,17 @@ class TaskType(str, Enum):
 
 
 class Confidence(str, Enum):
+    """Coarse trust signal on a main-list task (green/yellow/red in the UI)."""
+
     HIGH = "high"
     MODERATE = "moderate"
     LOW = "low"
 
 
 class Placement(str, Enum):
+    """The gate: is this a real commitment (main_list) or a triage candidate
+    the user must promote or dismiss (suggested)?"""
+
     MAIN_LIST = "main_list"
     SUGGESTED = "suggested"
 
