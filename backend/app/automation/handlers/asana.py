@@ -77,6 +77,9 @@ class AsanaHandler(ActionHandler):
         context: MeetingContext,
         answers: Optional[dict[str, str]] = None,
     ) -> DraftResult | QuestionsResult:
+        """Draft the Asana team task (task/assignee/due), or ask clarifying
+        questions first. The question budget follows the task's confidence.
+        """
         ceiling = question_ceiling_for(task.confidence)
         prompt = ASANA_DRAFT_PROMPT.format(
             user_display_name=context.user_display_name,

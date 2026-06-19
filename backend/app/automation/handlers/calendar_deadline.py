@@ -81,6 +81,9 @@ class CalendarDeadlineHandler(ActionHandler):
         context: MeetingContext,
         answers: Optional[dict[str, str]] = None,
     ) -> DraftResult | QuestionsResult:
+        """Draft the solo all-day reminder, or ask clarifying questions first.
+        The question budget follows the task's confidence.
+        """
         ceiling = question_ceiling_for(task.confidence)
         prompt = CALENDAR_DEADLINE_DRAFT_PROMPT.format(
             user_display_name=context.user_display_name,

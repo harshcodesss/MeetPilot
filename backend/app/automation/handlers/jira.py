@@ -100,6 +100,9 @@ class JiraHandler(ActionHandler):
         context: MeetingContext,
         answers: Optional[dict[str, str]] = None,
     ) -> DraftResult | QuestionsResult:
+        """Draft the Jira ticket fields, or ask clarifying questions first.
+        The question budget follows the task's confidence.
+        """
         ceiling = question_ceiling_for(task.confidence)
         prompt = JIRA_DRAFT_PROMPT.format(
             user_display_name=context.user_display_name,

@@ -93,6 +93,9 @@ class NotionHandler(ActionHandler):
         context: MeetingContext,
         answers: Optional[dict[str, str]] = None,
     ) -> DraftResult | QuestionsResult:
+        """Draft the structured Notion doc (title + sections), or ask
+        clarifying questions first. The budget follows the task's confidence.
+        """
         ceiling = question_ceiling_for(task.confidence)
         prompt = NOTION_DRAFT_PROMPT.format(
             user_display_name=context.user_display_name,
