@@ -207,7 +207,7 @@ async function handleMessage(msg) {
     await chrome.storage.session.set({ captureState, capSeq: 0 });
 
     // Tell open Meet tabs to clear per-session state so a node Meet re-uses
-    // across sessions isn't muted by the previous run's emittedNodes WeakSet.
+    // across sessions isn't muted by the previous run's lastEmittedTextByNode map.
     await broadcastToMeetTabs({ type: 'SESSION_RESET' });
 
     console.log(`[MeetPilot SW] session started: ${data.session_id}`);
