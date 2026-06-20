@@ -293,7 +293,7 @@ function watchForContainer() {
 //
 //   SESSION_RESET — sent on START_CAPTURE. Clears per-session emission state
 //                   so a node Meet re-uses across sessions isn't muted by the
-//                   WeakSet from the previous run.
+//                   lastEmittedTextByNode WeakMap from the previous run.
 //   FLUSH_PENDING — sent on STOP_CAPTURE. Emits any cached in-flight caption
 //                   immediately so the SW can include it in the final flush
 //                   before /complete.
