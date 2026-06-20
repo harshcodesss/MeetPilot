@@ -34,7 +34,7 @@ export function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 }
 
-/** `n` months added (can be negative); day-of-month clamped sensibly. */
+/** `n` months added (can be negative); returns the first day of that month. */
 export function addMonths(date: Date, n: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + n, 1);
 }
