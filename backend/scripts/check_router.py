@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 sys.path.insert(0, ".")
 
 from app.automation.context import MeetingContext
-from app.automation.router import route
+from app.automation.router import _is_self_assignee, route
 from app.models import TaskDB
 
 
@@ -36,6 +36,18 @@ def make_task(*, type, action, assignee, source_seq=(1,)):
         placement="main_list",
         source_seq=list(source_seq),
     )
+
+
+# (description, assignee, display_name, expected) — directly exercises the
+# _is_self_assignee helper, including the case/whitespace normalisation that
+# the scheduling and asana branches rely on for correct routing.
+SELF_ASSIGNEE_CASES = [
+    ("exact match", "harsh Rathi", "harsh Rathi", True),
+    ("case-insensitive match", "HARSH RATHI", "harsh rathi", True),
+    ("whitespace-padded match", "  harsh Rathi  ", "harsh Rathi", True),
+    ("different person", "Priya", "harsh Rathi", False),
+    ("empty assignee", "", "harsh Rathi", False),
+]
 
 
 # (description, task kwargs, expected handler name)
@@ -100,6 +112,14 @@ CASES = [
 
 def main() -> int:
     failed = 0
+    for desc, assignee, display_name, expected in SELF_ASSIGNEE_CASES:
+        actual = _is_self_assignee(assignee, display_name)
+        ok = actual == expected
+        if not ok:
+            failed += 1
+        status = "PASS" if ok else "FAIL"
+        print(f"  [{status}] _is_self_assignee: {desc:<43}  got={actual!r:<7} expected={expected!r}")
+
     for desc, kwargs, expected in CASES:
         actual = route(make_task(**kwargs), CONTEXT)
         ok = actual == expected
@@ -108,7 +128,7 @@ def main() -> int:
         status = "PASS" if ok else "FAIL"
         print(f"  [{status}] {desc:<60}  got={actual!r:<22} expected={expected!r}")
 
-    total = len(CASES)
+    total = len(SELF_ASSIGNEE_CASES) + len(CASES)
     passed = total - failed
     print()
     print(f"  {passed}/{total} cases passed.")
