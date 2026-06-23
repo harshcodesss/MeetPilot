@@ -22,6 +22,12 @@ router = APIRouter()
 
 
 class UserOut(BaseModel):
+    """Public view of a user — the safe subset returned by auth endpoints.
+
+    Deliberately excludes the server-side Google OAuth tokens stored on the
+    ``User`` row; only identity fields are exposed to clients.
+    """
+
     user_id: str
     email: str
     display_name: str
