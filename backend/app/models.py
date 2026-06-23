@@ -14,6 +14,12 @@ from .database import Base
 # ---------------------------------------------------------------------------
 
 class User(Base):
+    """One Google account, identified by ``google_sub`` (stable, unlike email).
+
+    Holds Google's access/refresh tokens server-side so S4's Gmail/Calendar
+    handlers can act on the user's behalf; these are never sent to the extension.
+    """
+
     __tablename__ = "users"
 
     user_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -46,6 +52,11 @@ class AuthSession(Base):
 
 
 class SessionDB(Base):
+    """One meeting, scoped to a user.
+
+    ``started_at`` anchors resolution of relative deadlines like "by Friday".
+    """
+
     __tablename__ = "sessions"
 
     session_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -59,6 +70,13 @@ class SessionDB(Base):
 
 
 class SegmentDB(Base):
+    """One finalized caption line from a meeting.
+
+    ``seq`` is assigned in the service worker (capture order) and breaks
+    timestamp ties; the transcript is ordered by ``(timestamp, seq)``. The
+    ``(session_id, seq)`` unique constraint makes batched appends idempotent.
+    """
+
     __tablename__ = "segments"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -76,6 +94,14 @@ class SegmentDB(Base):
 
 
 class TaskDB(Base):
+    """One extracted commitment, plus its S4 drafting state.
+
+    The extraction columns (assignee, action, deadlines, type, confidence,
+    placement, source_seq) are the S3 output; the draft_* columns are the S4
+    automation overlay. Both are owned by the worker and rewritten on
+    re-extraction (delete-and-replace keyed by session_id).
+    """
+
     __tablename__ = "tasks"
 
     task_id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
