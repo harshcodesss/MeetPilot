@@ -13,6 +13,14 @@ from datetime import datetime
 
 @dataclass(frozen=True)
 class MeetingContext:
+    """Read-only drafting context for one task.
+
+    ``session_started_at`` is the deadline anchor, ``user_display_name`` lets a
+    handler recognize the local participant, and ``transcript_excerpt`` holds
+    only the lines the task cites (not the whole meeting). Frozen so a handler
+    cannot mutate state shared across the session's tasks.
+    """
+
     session_id: str
     session_started_at: datetime
     user_display_name: str
