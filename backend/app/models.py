@@ -134,11 +134,15 @@ class TaskDB(Base):
 # ---------------------------------------------------------------------------
 
 class SessionStartResponse(BaseModel):
+    """Response for ``/session/start`` — the new meeting's id and anchor time."""
+
     session_id: str
     started_at: datetime
 
 
 class SegmentIn(BaseModel):
+    """One caption line in an ingest batch, as sent by the service worker."""
+
     seq: int
     speaker: str
     text: str
@@ -146,20 +150,28 @@ class SegmentIn(BaseModel):
 
 
 class SegmentsBatchRequest(BaseModel):
+    """Body for ``POST /session/{id}/segments`` — a flushed batch of captions."""
+
     segments: list[SegmentIn]
 
 
 class SegmentsBatchResponse(BaseModel):
+    """Append result — how many segments were stored vs. dropped as duplicates."""
+
     accepted: int
     skipped: int  # duplicate seq values silently dropped (idempotent retry)
 
 
 class SessionCompleteResponse(BaseModel):
+    """Response for ``/session/{id}/complete`` — confirms the session is closed."""
+
     session_id: str
     status: str
 
 
 class SegmentOut(BaseModel):
+    """A stored segment serialized for read APIs (from a ``SegmentDB`` row)."""
+
     seq: int
     speaker: str
     text: str
